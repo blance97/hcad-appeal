@@ -1,0 +1,8 @@
+node_modules/
+data/*.txt
+data/*.csv
+data/*.db
+data/*.zip
+.env
+dist/
+.DS_Store

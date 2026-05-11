@@ -1,0 +1,22 @@
+{
+  "name": "hcad-appeal-backend",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch server.js",
+    "start": "node server.js",
+    "import-data": "node scripts/import-hcad.js"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.14.0",
+    "cheerio": "^1.2.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "pdf-lib": "^1.17.1",
+    "unzipper": "^0.12.3"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21"
+  }
+}

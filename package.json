@@ -1,0 +1,15 @@
+{
+  "name": "hcad-appeal",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n backend,frontend -c blue,green \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "install:all": "cd backend && npm install && cd ../frontend && npm install",
+    "import-data": "cd backend && npm run import-data"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
