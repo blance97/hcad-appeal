@@ -1,9 +1,11 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useCounty } from '../CountyContext.jsx';
 
 export default function PacketPage() {
   const { packetId } = useParams();
   const navigate = useNavigate();
+  const { county_name, cad_name, filing_url } = useCounty();
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -15,7 +17,7 @@ export default function PacketPage() {
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Your Appeal Packet is Ready</h2>
         <p className="text-gray-600 mb-6">
           Download your complete, ready-to-file appeal packet. File at{' '}
-          <strong>iFile.hcad.org</strong> before the May 15 deadline.
+          <strong>{filing_url}</strong> before the May 15 deadline.
         </p>
 
         <div className="grid grid-cols-2 gap-4">
@@ -45,7 +47,7 @@ export default function PacketPage() {
             ['Cover Page', 'Your property details and potential savings at a glance'],
             ['Appeal Letter', 'Formal protest letter citing Texas Property Tax Code §41.41'],
             ['Comparable Properties', 'Evidence table with similar homes and their assessments'],
-            ['Filing Instructions', 'Step-by-step Harris County ARB process'],
+            ['Filing Instructions', `Step-by-step ${county_name} ARB process`],
             ['Deadline Checklist', 'Everything you need before May 15'],
             ['Legal Disclaimer', 'Important notices and terms of use'],
           ].map(([title, desc], i) => (
@@ -63,7 +65,7 @@ export default function PacketPage() {
       </div>
 
       <p className="text-xs text-gray-400 mt-6 text-center">
-        Data from HCAD public records. Not legal or tax advice. Results are estimates only.
+        Data from {cad_name} public records. Not legal or tax advice. Results are estimates only.
       </p>
     </div>
   );

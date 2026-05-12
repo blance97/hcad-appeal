@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useCounty } from '../CountyContext.jsx';
 
 const fmt = n =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
@@ -103,6 +104,7 @@ function Skeleton() {
 export default function ResultsPage() {
   const { accountNumber } = useParams();
   const navigate = useNavigate();
+  const { county_name, cad_name, tax_rate } = useCounty();
 
   const [data, setData] = useState(null);
   const [property, setProperty] = useState(null);
@@ -208,7 +210,7 @@ export default function ResultsPage() {
   const percentAbove = analysis.percent_above_median;
   const isOverassessed = percentAbove > 5;
   const potentialSavings = analysis.potential_savings;
-  const annualSavings = Math.round(potentialSavings * 0.021);
+  const annualSavings = Math.round(potentialSavings * tax_rate);
   const fiveYearSavings = annualSavings * 5;
   const medianCompValue = analysis.median_value_per_sqft * sqft;
   const streetCompCount = analysis.street_comp_count || 0;
@@ -303,9 +305,9 @@ export default function ResultsPage() {
               How these numbers are calculated
             </summary>
             <div className="mt-2 text-xs text-emerald-700/80 leading-relaxed space-y-1.5 pl-4">
-              <p><span className="font-semibold">Value reduction ({fmt(potentialSavings)}):</span> The gap between your assessed value per sqft ({fmt(analysis.subject_value_per_sqft)}/sqft) and the neighborhood median ({fmt(analysis.median_value_per_sqft)}/sqft), multiplied by your {Number(subject.sqft).toLocaleString()} sqft. Based on {poolSize} similar homes in your HCAD neighborhood.</p>
-              <p><span className="font-semibold">Annual savings ({fmt(annualSavings)}):</span> Value reduction × 2.1%, the approximate effective property tax rate in Harris County. Your actual rate depends on your specific taxing entities (city, school district, MUD, etc.).</p>
-              <p><span className="font-semibold">Note:</span> These are estimates. HCAD may not grant the full reduction. Filing is free and your value cannot increase as a result of a protest.</p>
+              <p><span className="font-semibold">Value reduction ({fmt(potentialSavings)}):</span> The gap between your assessed value per sqft ({fmt(analysis.subject_value_per_sqft)}/sqft) and the neighborhood median ({fmt(analysis.median_value_per_sqft)}/sqft), multiplied by your {Number(subject.sqft).toLocaleString()} sqft. Based on {poolSize} similar homes in your {county_name} neighborhood.</p>
+              <p><span className="font-semibold">Annual savings ({fmt(annualSavings)}):</span> Value reduction × {(tax_rate * 100).toFixed(1)}%, the approximate effective property tax rate in {county_name}. Your actual rate depends on your specific taxing entities (city, school district, MUD, etc.).</p>
+              <p><span className="font-semibold">Note:</span> These are estimates. {cad_name} may not grant the full reduction. Filing is free and your value cannot increase as a result of a protest.</p>
             </div>
           </details>
           {yoyChange !== null && neighborhood?.median_yoy !== null && (
@@ -407,14 +409,14 @@ export default function ResultsPage() {
                 <span className="w-5 h-5 rounded bg-amber-100 text-amber-700 font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
                 <div>
                   <span className="font-semibold text-zinc-700">Same-street first (up to 5).</span>{' '}
-                  Properties on your exact street with similar size (within 20%) and year built (within 10 years). These are the strongest evidence at an ARB hearing. HCAD can't easily justify a $50K gap between homes on the same block with identical floor plans.
+                  Properties on your exact street with similar size (within 20%) and year built (within 10 years). These are the strongest evidence at an ARB hearing. {cad_name} can't easily justify a $50K gap between homes on the same block with identical floor plans.
                 </div>
               </div>
               <div className="flex gap-2.5">
                 <span className="w-5 h-5 rounded bg-zinc-100 text-zinc-600 font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
                 <div>
-                  <span className="font-semibold text-zinc-700">HCAD neighborhood code (fills to 10).</span>{' '}
-                  HCAD groups properties into tight appraisal neighborhoods of 50–300 homes (your code: {nbhdCd || zip}). We pull the closest-matching homes from that group. Same size and year filters apply.
+                  <span className="font-semibold text-zinc-700">{cad_name} neighborhood code (fills to 10).</span>{' '}
+                  {cad_name} groups properties into tight appraisal neighborhoods of 50–300 homes (your code: {nbhdCd || zip}). We pull the closest-matching homes from that group. Same size and year filters apply.
                 </div>
               </div>
               <div className="flex gap-2.5">
@@ -457,7 +459,7 @@ export default function ResultsPage() {
       <div className="rounded-2xl bg-brand p-6 text-white">
         <h3 className="text-xl font-bold mb-1">Get Your Appeal Packet</h3>
         <p className="text-indigo-200 text-sm mb-4">
-          Pre-filled with your property data and {comps.length} comparable properties. Ready to file with Harris County ARB.
+          Pre-filled with your property data and {comps.length} comparable properties. Ready to file with {county_name} ARB.
         </p>
         {isOverassessed && (
           <p className="text-emerald-300 text-sm font-semibold mb-5">

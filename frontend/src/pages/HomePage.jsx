@@ -1,36 +1,39 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useCounty } from '../CountyContext.jsx';
 
-const FAQS = [
-  {
-    q: 'What is a property tax appeal?',
-    a: 'A property tax appeal (called a "protest" in Texas) is your right to challenge the value HCAD places on your home. If your assessed value is higher than what comparable homes are assessed at, you can formally request a reduction. HCAD must consider your evidence.',
-  },
-  {
-    q: 'How do I know if I\'m overassessed?',
-    a: 'Search your address above. We compare your assessed value per square foot to similar homes in your HCAD neighborhood. If yours is significantly higher than the median, you\'re likely overassessed and have a strong case.',
-  },
-  {
-    q: 'What\'s the deadline to file?',
-    a: 'In Texas, the deadline to protest is May 15 (or 30 days after your appraisal notice is mailed, whichever is later). There are no extensions. Miss it and you wait until next year.',
-  },
-  {
-    q: 'What\'s in the appeal packet?',
-    a: 'Your packet includes a formal protest letter citing Texas Property Tax Code §41.41, a comparable properties evidence table pulled from HCAD\'s own data, filing instructions, a deadline checklist, and a legal disclaimer. It\'s ready to upload at iFile.hcad.org.',
-  },
-  {
-    q: 'Do I need to go to a hearing?',
-    a: 'Not always. Most reductions happen at the informal hearing, a short meeting with an HCAD appraiser where you present your comps. If you\'re unsatisfied, you can escalate to a formal ARB (Appraisal Review Board) hearing. Filing online at iFile.hcad.org schedules this automatically.',
-  },
-  {
-    q: 'What if my appeal doesn\'t succeed?',
-    a: 'There\'s no downside to filing. HCAD cannot raise your value as a result of a protest. Worst case, your value stays the same. You can always try again next year when new assessment notices come out.',
-  },
-  {
-    q: 'Why is this free?',
-    a: 'This tool was built by a Houston homeowner who went through the appeal process and thought it should be easier. The data is already public. HCAD publishes it every year. No reason to charge for access to your own public records.',
-  },
-];
+function makeFaqs(cadName, countyName, filingUrl) {
+  return [
+    {
+      q: 'What is a property tax appeal?',
+      a: `A property tax appeal (called a "protest" in Texas) is your right to challenge the value ${cadName} places on your home. If your assessed value is higher than what comparable homes are assessed at, you can formally request a reduction. ${cadName} must consider your evidence.`,
+    },
+    {
+      q: "How do I know if I'm overassessed?",
+      a: `Search your address above. We compare your assessed value per square foot to similar homes in your ${cadName} neighborhood. If yours is significantly higher than the median, you're likely overassessed and have a strong case.`,
+    },
+    {
+      q: "What's the deadline to file?",
+      a: 'In Texas, the deadline to protest is May 15 (or 30 days after your appraisal notice is mailed, whichever is later). There are no extensions. Miss it and you wait until next year.',
+    },
+    {
+      q: "What's in the appeal packet?",
+      a: `Your packet includes a formal protest letter citing Texas Property Tax Code §41.41, a comparable properties evidence table pulled from ${cadName}'s own data, filing instructions, a deadline checklist, and a legal disclaimer. It's ready to upload at ${filingUrl}.`,
+    },
+    {
+      q: 'Do I need to go to a hearing?',
+      a: `Not always. Most reductions happen at the informal hearing, a short meeting with a ${cadName} appraiser where you present your comps. If you're unsatisfied, you can escalate to a formal ARB (Appraisal Review Board) hearing. Filing online at ${filingUrl} schedules this automatically.`,
+    },
+    {
+      q: "What if my appeal doesn't succeed?",
+      a: `There's no downside to filing. ${cadName} cannot raise your value as a result of a protest. Worst case, your value stays the same. You can always try again next year when new assessment notices come out.`,
+    },
+    {
+      q: 'Why is this free?',
+      a: `This tool was built by a local homeowner who went through the appeal process and thought it should be easier. The data is already public. ${cadName} publishes it every year. No reason to charge for access to your own public records.`,
+    },
+  ];
+}
 
 function FaqItem({ q, a }) {
   const [open, setOpen] = useState(false);
@@ -51,24 +54,13 @@ function FaqItem({ q, a }) {
 }
 
 export default function HomePage() {
+  const { county_name, cad_name, filing_url, state, tax_year: taxYear, property_count: propertyCount } = useCounty();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [taxYear, setTaxYear] = useState(null);
-  const [propertyCount, setPropertyCount] = useState(null);
   const navigate = useNavigate();
   const debounce = useRef(null);
-
-  React.useEffect(() => {
-    fetch('/api/health')
-      .then(r => r.json())
-      .then(d => {
-        if (d.tax_year) setTaxYear(d.tax_year);
-        if (d.property_count) setPropertyCount(d.property_count);
-      })
-      .catch(() => {});
-  }, []);
 
   async function search(q) {
     if (q.trim().length < 3) { setResults([]); return; }
@@ -98,21 +90,21 @@ export default function HomePage() {
       {/* Hero */}
       <div className="text-center mb-8 pt-8">
         <div className="inline-flex items-center gap-2 bg-brand-light text-brand text-xs font-semibold px-3 py-1.5 rounded-full mb-6 uppercase tracking-wide">
-          Harris County, Texas{taxYear ? ` · ${taxYear} Tax Year` : ''}
+          {county_name}, {state}{taxYear ? ` · ${taxYear} Tax Year` : ''}
         </div>
         <h1 className="text-4xl sm:text-5xl font-extrabold text-zinc-900 mb-4 leading-tight tracking-tight">
           Are You Overpaying<br />
           <span className="text-brand">Property Taxes?</span>
         </h1>
         <p className="text-zinc-500 text-lg leading-relaxed max-w-lg mx-auto">
-          Search your address. We'll compare your assessment to similar homes in your neighborhood using HCAD's own data.
+          Search your address. We'll compare your assessment to similar homes in your neighborhood using {cad_name}'s own data.
         </p>
       </div>
 
       {/* Search */}
       <div className="bg-white rounded-2xl border border-zinc-200 shadow-card p-6 relative">
         <label className="block text-sm font-semibold text-zinc-700 mb-3">
-          Your Harris County address
+          Your {county_name} address
         </label>
         <div className="relative">
           <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -156,7 +148,7 @@ export default function HomePage() {
       {/* Stats */}
       <div className="mt-8 grid grid-cols-3 gap-3">
         {[
-          { n: propertyCount ? `${(propertyCount / 1_000_000).toFixed(1)}M` : '—', label: 'HCAD records' },
+          { n: propertyCount ? `${(propertyCount / 1_000_000).toFixed(1)}M` : '—', label: `${cad_name} records` },
           { n: 'May 15', label: `${taxYear || '—'} protest deadline` },
           { n: 'Free', label: 'no signup required' },
         ].map(({ n, label }) => (
@@ -170,9 +162,9 @@ export default function HomePage() {
       {/* How it works */}
       <div className="mt-10 space-y-3">
         {[
-          { step: '1', title: 'Search your address', desc: 'We pull your live HCAD assessment and property details.' },
-          { step: '2', title: 'See comparable homes', desc: 'We find similar properties in your HCAD neighborhood and compare assessed values.' },
-          { step: '3', title: 'Get your appeal packet', desc: 'Download a pre-filled packet ready to file with Harris County ARB.' },
+          { step: '1', title: 'Search your address', desc: `We pull your live ${cad_name} assessment and property details.` },
+          { step: '2', title: 'See comparable homes', desc: `We find similar properties in your ${cad_name} neighborhood and compare assessed values.` },
+          { step: '3', title: 'Get your appeal packet', desc: `Download a pre-filled packet ready to file with ${county_name} ARB.` },
         ].map(({ step, title, desc }) => (
           <div key={step} className="flex gap-4 bg-white rounded-xl border border-zinc-200 shadow-card p-4">
             <div className="w-8 h-8 rounded-lg bg-brand-light text-brand font-bold text-sm flex items-center justify-center flex-shrink-0">
@@ -209,7 +201,7 @@ export default function HomePage() {
       <div className="mt-14">
         <h2 className="text-2xl font-extrabold text-zinc-900 text-center mb-6">Frequently Asked Questions</h2>
         <div className="space-y-2">
-          {FAQS.map(f => <FaqItem key={f.q} {...f} />)}
+          {makeFaqs(cad_name, county_name, filing_url).map(f => <FaqItem key={f.q} {...f} />)}
         </div>
       </div>
 

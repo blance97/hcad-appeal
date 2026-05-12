@@ -20,6 +20,15 @@ app.use('/api/appeal', appealRouter);
 app.use('/api/neighborhood', neighborhoodRouter);
 app.use('/api/stats', statsRouter);
 
+const COUNTY_CONFIG = {
+  county_name:    process.env.COUNTY_NAME    || 'Harris County',
+  cad_name:       process.env.CAD_NAME       || 'HCAD',
+  cad_full_name:  process.env.CAD_FULL_NAME  || 'Harris County Appraisal District',
+  filing_url:     process.env.FILING_URL     || 'iFile.hcad.org',
+  tax_rate:       parseFloat(process.env.TAX_RATE) || 0.021,
+  state:          process.env.STATE          || 'Texas',
+};
+
 app.get('/api/health', async (_, res) => {
   try {
     const { getDb } = await import('./db/database.js');
@@ -30,9 +39,10 @@ app.get('/api/health', async (_, res) => {
       status: 'ok',
       tax_year: Number(rows[0]?.tax_year) || null,
       property_count: Number(rows[0]?.property_count) || null,
+      ...COUNTY_CONFIG,
     });
   } catch {
-    res.json({ status: 'ok', tax_year: null, property_count: null });
+    res.json({ status: 'ok', tax_year: null, property_count: null, ...COUNTY_CONFIG });
   }
 });
 
