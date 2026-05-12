@@ -322,6 +322,12 @@ async function main() {
   const { rows: bfix } = await db.execute('SELECT COUNT(*) as n FROM buildings WHERE beds IS NOT NULL');
   const elapsed = ((Date.now() - start) / 1000).toFixed(1);
 
+  // Flush all WAL pages into the main db file before the caller renames it.
+  // Without this, mv only moves the .db file and leaves .db-wal behind,
+  // making the database appear empty to any new connection.
+  console.log('\nCheckpointing WAL...');
+  await db.execute('PRAGMA wal_checkpoint(TRUNCATE)');
+
   console.log('\n✓ Import complete');
   console.log(`  Properties        : ${Number(p[0].n).toLocaleString()}`);
   console.log(`  Buildings         : ${Number(b[0].n).toLocaleString()}`);
