@@ -35,7 +35,7 @@ All data comes from HCAD's own public records. No account required. Free.
 ```
 GET /api/property/search?q=<query>
 ```
-Search by address or account number. Returns up to 10 results. Query must be at least 3 characters. All tokens are ANDed — `"1305 asbury"` only matches addresses containing both words.
+Search by address or account number. Returns up to 10 results. Query must be at least 3 characters. All tokens are ANDed — `"123 main"` only matches addresses containing both words.
 
 ```
 GET /api/property/:accountNumber
@@ -169,9 +169,33 @@ The backend requires a persistent volume (`/data/hcad.db`) — run the import jo
 
 ## Comparable Selection Logic
 
-1. **Street comps** — up to 5 properties on the same street, sqft within ±20%, year built within ±10 years, deduplicated by address
-2. **Neighborhood comps** — up to 10 properties in the same HCAD `nbhd_cd`, ordered by closest sqft
-3. **Analysis pool** — ALL eligible properties in the neighborhood code (not just the 10 shown) are used to calculate the median $/sqft and potential savings, giving a statistically defensible number
+### Evidence comps (shown in the table, up to 10)
+
+**Step 1 — Same-street comps (up to 5)**
+Properties on the exact same street where:
+- Square footage within ±20% of the subject
+- Year built within ±10 years
+- One entry per physical address (deduped)
+- Ordered by closest sqft to the subject
+
+Same-street comps are the strongest ARB evidence because they share location, builder, and usually floor plan. HCAD appraisers struggle to justify material differences between homes on the same block.
+
+**Step 2 — HCAD neighborhood comps (fills to 10)**
+If fewer than 10 comps found on the street, additional properties are pulled from the same HCAD `nbhd_cd` — tight appraisal neighborhoods of ~50–300 homes that HCAD itself uses for equity analysis. Same sqft ±20%, year ±10 filter applies, ordered by closest sqft.
+
+**Step 3 — Zip code fallback**
+If the neighborhood code returns fewer than 3 comps (rare), the search widens to the full zip code with the same sqft and year filters.
+
+### Analysis pool (used for median $/sqft and savings estimate)
+
+The overassessment calculation uses **all** eligible properties in the HCAD neighborhood (sqft ±20%, no year cap), not just the 10 displayed. This gives a statistically robust median across hundreds of homes rather than relying on 10 cherry-picked results. Pool size is shown on the results page (e.g. "721 similar homes").
+
+**Why $/sqft instead of total value?**
+Comparing raw assessed values ignores size differences. A 2,000 sqft home assessed at $400K and a 2,500 sqft home at $500K are both at $200/sqft — equivalent. Assessed value per square foot normalizes for size and is the metric HCAD itself uses internally.
+
+**Savings estimate**
+`Value reduction = (your $/sqft − neighborhood median $/sqft) × your sqft`
+`Annual tax savings ≈ value reduction × 2.1%` (approximate Harris County effective rate — actual rate varies by taxing entities)
 
 ---
 

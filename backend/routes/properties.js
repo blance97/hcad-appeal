@@ -15,7 +15,7 @@ router.get('/search', async (req, res) => {
   const tokens = upper.split(/\s+/).filter(Boolean);
 
   // Require every word in the query to appear in the address (AND, not OR)
-  // so "1305 ASBURY" only matches addresses that have both tokens.
+  // so "123 main" only matches addresses that contain both tokens.
   const addressConditions = tokens.map(() => 'UPPER(p.address) LIKE ?').join(' AND ');
   const addressArgs = tokens.map(t => `%${t}%`);
 

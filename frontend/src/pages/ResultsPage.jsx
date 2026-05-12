@@ -379,6 +379,41 @@ export default function ResultsPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Methodology explanation */}
+        <div className="mt-4 pt-4 border-t border-zinc-100">
+          <details className="group">
+            <summary className="text-xs text-zinc-400 cursor-pointer hover:text-zinc-600 transition-colors list-none flex items-center gap-1.5 select-none">
+              <svg className="w-3.5 h-3.5 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+              How we pick these comps
+            </summary>
+            <div className="mt-3 space-y-2.5 text-xs text-zinc-500 leading-relaxed">
+              <div className="flex gap-2.5">
+                <span className="w-5 h-5 rounded bg-amber-100 text-amber-700 font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
+                <div>
+                  <span className="font-semibold text-zinc-700">Same-street first (up to 5).</span>{' '}
+                  Properties on your exact street with similar size (within 20%) and year built (within 10 years). These are the strongest evidence at an ARB hearing — HCAD can't easily justify a $50K gap between homes on the same block with identical floor plans.
+                </div>
+              </div>
+              <div className="flex gap-2.5">
+                <span className="w-5 h-5 rounded bg-zinc-100 text-zinc-600 font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
+                <div>
+                  <span className="font-semibold text-zinc-700">HCAD neighborhood code (fills to 10).</span>{' '}
+                  HCAD groups properties into tight appraisal neighborhoods of 50–300 homes (your code: {nbhdCd || zip}). We pull the closest-matching homes from that group. Same size and year filters apply.
+                </div>
+              </div>
+              <div className="flex gap-2.5">
+                <span className="w-5 h-5 rounded bg-zinc-100 text-zinc-600 font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
+                <div>
+                  <span className="font-semibold text-zinc-700">Analysis uses the full pool ({poolSize} homes), not just the 10 shown.</span>{' '}
+                  The overassessment % and savings estimate are calculated from all eligible homes in your neighborhood — not cherry-picked. $/sqft is used instead of raw value to normalize for size differences.
+                </div>
+              </div>
+            </div>
+          </details>
+        </div>
       </div>
 
       {/* Neighborhood Overview */}
