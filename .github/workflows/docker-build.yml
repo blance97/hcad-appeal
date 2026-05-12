@@ -44,3 +44,31 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.OWNER }}/hcad-appeal-frontend:${{ github.sha }}
             ${{ env.REGISTRY }}/${{ env.OWNER }}/hcad-appeal-frontend:latest
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout homelab GitOps repo
+        uses: actions/checkout@v4
+        with:
+          repository: blance97/homelab-k3s-cluster
+          token: ${{ secrets.GITOPS_TOKEN }}
+          path: gitops
+
+      - name: Update image tags in values.yaml
+        run: |
+          SHA=${{ github.sha }}
+          sed -i "s|^\(  tag:\).*|\1 \"${SHA}\"|" gitops/k8s-infra/apps/hcad-appeal/values.yaml
+
+      - name: Commit and push
+        run: |
+          cd gitops
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add k8s-infra/apps/hcad-appeal/values.yaml
+          git commit -m "chore: deploy hcad-appeal@${GITHUB_SHA::7}" || echo "No changes"
+          git push
