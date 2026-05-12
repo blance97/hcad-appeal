@@ -322,11 +322,11 @@ async function main() {
   const { rows: bfix } = await db.execute('SELECT COUNT(*) as n FROM buildings WHERE beds IS NOT NULL');
   const elapsed = ((Date.now() - start) / 1000).toFixed(1);
 
-  // Flush all WAL pages into the main db file before the caller renames it.
-  // Without this, mv only moves the .db file and leaves .db-wal behind,
-  // making the database appear empty to any new connection.
-  console.log('\nCheckpointing WAL...');
-  await db.execute('PRAGMA wal_checkpoint(TRUNCATE)');
+  // VACUUM INTO creates a brand-new clean file with all data baked in and no
+  // WAL file — sidesteps WAL checkpoint unreliability with @libsql/client.
+  const newDbPath = join(DATA_DIR, '..', 'hcad_new.db');
+  console.log(`\nVacuuming into ${newDbPath}...`);
+  await db.execute(`VACUUM INTO '${newDbPath}'`);
 
   console.log('\n✓ Import complete');
   console.log(`  Properties        : ${Number(p[0].n).toLocaleString()}`);
