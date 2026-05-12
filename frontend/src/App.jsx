@@ -3,6 +3,7 @@ import { Routes, Route, Link } from 'react-router-dom';
 import HomePage from './pages/HomePage.jsx';
 import ResultsPage from './pages/ResultsPage.jsx';
 import PacketPage from './pages/PacketPage.jsx';
+import StatsPage from './pages/StatsPage.jsx';
 
 export default function App() {
   return (
@@ -41,6 +42,7 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/results/:accountNumber" element={<ResultsPage />} />
           <Route path="/packet/:packetId" element={<PacketPage />} />
+          <Route path="/stats" element={<StatsPage />} />
         </Routes>
       </main>
 
