@@ -10,15 +10,26 @@ router.get('/search', async (req, res) => {
   }
 
   const db = getDb();
-  const term = `%${q.trim().toUpperCase()}%`;
+  const upper = q.trim().toUpperCase();
+  const tokens = upper.split(/\s+/).filter(Boolean);
+
+  // Require every word in the query to appear in the address (AND, not OR)
+  // so "1305 ASBURY" only matches addresses that have both tokens.
+  const addressConditions = tokens.map(() => 'UPPER(p.address) LIKE ?').join(' AND ');
+  const addressArgs = tokens.map(t => `%${t}%`);
+
   const { rows } = await db.execute({
     sql: `SELECT p.account_number, p.address, p.city, p.zip, p.total_value,
                  b.sqft, b.year_built, b.beds, b.baths
           FROM properties p
           LEFT JOIN buildings b ON b.account_number = p.account_number
-          WHERE UPPER(p.address) LIKE ? OR p.account_number LIKE ?
-          LIMIT 20`,
-    args: [term, term],
+          WHERE (${addressConditions})
+             OR p.account_number = ?
+          ORDER BY
+            CASE WHEN UPPER(p.address) LIKE ? THEN 0 ELSE 1 END,
+            LENGTH(p.address)
+          LIMIT 10`,
+    args: [...addressArgs, upper, `${upper}%`],
   });
 
   res.json(rows);

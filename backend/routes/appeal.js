@@ -27,21 +27,28 @@ router.post('/generate', async (req, res) => {
   const sqftMin = Math.floor(sqft * 0.8);
   const sqftMax = Math.ceil(sqft * 1.2);
 
+  // Use nbhd_cd for tight neighborhood comps; fall back to zip
+  const geoCol = property.nbhd_cd ? 'p.nbhd_cd' : 'p.zip';
+  const geoVal = property.nbhd_cd || property.zip;
+
   const { rows: comps } = await db.execute({
     sql: `SELECT p.account_number, p.address, p.zip, p.total_value,
                  b.sqft, b.year_built,
                  ROUND(CAST(p.total_value AS REAL) / b.sqft, 2) AS value_per_sqft
           FROM properties p
           JOIN buildings b ON b.account_number = p.account_number
-          WHERE p.zip = ?
+          WHERE ${geoCol} = ?
             AND p.account_number != ?
             AND b.sqft BETWEEN ? AND ?
             AND b.year_built BETWEEN ? AND ?
             AND b.sqft > 0
             AND p.total_value > 0
+            AND p.account_number = (
+              SELECT MIN(p2.account_number) FROM properties p2 WHERE p2.address = p.address
+            )
           ORDER BY ABS(b.sqft - ?) ASC
           LIMIT 10`,
-    args: [property.zip, accountNumber, sqftMin, sqftMax, yearBuilt - 10, yearBuilt + 10, sqft],
+    args: [geoVal, accountNumber, sqftMin, sqftMax, yearBuilt - 10, yearBuilt + 10, sqft],
   });
 
   const subjectVPS = sqft ? Number(property.total_value) / sqft : 0;

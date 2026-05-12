@@ -2,19 +2,15 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 
 const fmt = n =>
-  new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  }).format(n);
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
 
 const fmtNum = n => new Intl.NumberFormat('en-US').format(n);
 
 function StatBox({ label, value, valueClass = '' }) {
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-xs uppercase tracking-wide text-stone-500 font-medium">{label}</span>
-      <span className={`text-lg font-semibold text-stone-900 ${valueClass}`}>{value}</span>
+      <span className="text-xs uppercase tracking-wide text-zinc-400 font-semibold">{label}</span>
+      <span className={`text-lg font-bold text-zinc-900 ${valueClass}`}>{value}</span>
     </div>
   );
 }
@@ -45,26 +41,31 @@ function AddressSearchBar({ onSelect }) {
   }
 
   return (
-    <div className="bg-white rounded-lg border border-stone-200 shadow-sm p-4 mb-6 relative">
-      <input
-        type="text"
-        value={query}
-        onChange={handleInput}
-        placeholder="Search another address or account number…"
-        className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm bg-cream focus:outline-none focus:ring-2 focus:ring-stone-400 focus:border-transparent placeholder-stone-400"
-      />
-      {loading && <span className="absolute right-8 top-1/2 -translate-y-1/2 text-stone-400 text-xs">Searching…</span>}
+    <div className="bg-white rounded-2xl border border-zinc-200 shadow-card p-4 mb-4 relative">
+      <div className="relative">
+        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+        </svg>
+        <input
+          type="text"
+          value={query}
+          onChange={handleInput}
+          placeholder="Search another address or account number…"
+          className="w-full border border-zinc-300 rounded-xl pl-9 pr-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent placeholder-zinc-400 transition"
+        />
+        {loading && <div className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 border-2 border-zinc-200 border-t-brand rounded-full animate-spin" />}
+      </div>
       {results.length > 0 && (
-        <ul className="absolute left-4 right-4 top-full mt-1 divide-y divide-stone-100 border border-stone-200 rounded-lg overflow-hidden bg-white shadow-md z-10">
+        <ul className="absolute left-4 right-4 top-full mt-1 divide-y divide-zinc-100 border border-zinc-200 rounded-xl overflow-hidden bg-white shadow-card-hover z-10">
           {results.map(p => (
             <li key={p.account_number}>
               <button
                 onClick={() => { setQuery(''); setResults([]); onSelect(p.account_number); }}
-                className="w-full text-left px-4 py-3 hover:bg-cream transition-colors"
+                className="w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors"
               >
-                <div className="font-medium text-stone-900 text-sm">{p.address}, {p.city} {p.zip}</div>
-                <div className="text-xs text-stone-400 mt-0.5">
-                  Account: {p.account_number}
+                <div className="font-semibold text-zinc-900 text-sm">{p.address}, {p.city} {p.zip}</div>
+                <div className="text-xs text-zinc-400 mt-0.5">
+                  Account {p.account_number}
                   {p.sqft && ` · ${Number(p.sqft).toLocaleString()} sqft`}
                   {p.year_built && ` · Built ${p.year_built}`}
                 </div>
@@ -73,6 +74,28 @@ function AddressSearchBar({ onSelect }) {
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+function Skeleton() {
+  return (
+    <div className="max-w-3xl mx-auto space-y-4 animate-pulse">
+      <div className="h-14 bg-zinc-100 rounded-2xl" />
+      <div className="bg-white rounded-2xl border border-zinc-200 p-6 space-y-4">
+        <div className="h-6 bg-zinc-100 rounded w-48" />
+        <div className="h-4 bg-zinc-100 rounded w-32" />
+        <div className="grid grid-cols-3 gap-6 pt-2">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="space-y-2">
+              <div className="h-3 bg-zinc-100 rounded w-20" />
+              <div className="h-5 bg-zinc-100 rounded w-28" />
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="h-36 bg-zinc-100 rounded-2xl" />
+      <div className="h-64 bg-white rounded-2xl border border-zinc-200" />
     </div>
   );
 }
@@ -97,7 +120,6 @@ export default function ResultsPage() {
 
     async function load() {
       try {
-        // Fetch comps and full property details in parallel
         const [compsRes, propRes] = await Promise.all([
           fetch(`/api/comps/${accountNumber}`),
           fetch(`/api/property/${accountNumber}`),
@@ -107,11 +129,9 @@ export default function ResultsPage() {
         if (!compsRes.ok) throw new Error(compsJson.error);
 
         const propJson = propRes.ok ? await propRes.json() : null;
-
         setData(compsJson);
         setProperty(propJson);
 
-        // Prefer nbhd_cd for tighter neighborhood stats; fall back to zip
         const nbhdKey = compsJson.subject?.nbhd_cd || compsJson.subject?.zip;
         if (nbhdKey) {
           const nbRes = await fetch(`/api/neighborhood/${encodeURIComponent(nbhdKey)}`);
@@ -144,25 +164,20 @@ export default function ResultsPage() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="max-w-3xl mx-auto">
-        <AddressSearchBar onSelect={acct => navigate(`/results/${acct}`)} />
-        <div className="text-center py-20 text-stone-400">Loading property data…</div>
-      </div>
-    );
-  }
+  if (loading) return <Skeleton />;
 
   if (error) {
     return (
       <div className="max-w-3xl mx-auto">
         <AddressSearchBar onSelect={acct => navigate(`/results/${acct}`)} />
-        <div className="bg-white rounded-lg border border-stone-200 shadow-sm p-8 text-center">
-          <p className="text-brand font-medium">{error}</p>
-          <button
-            onClick={() => navigate('/')}
-            className="mt-4 text-sm text-stone-500 hover:text-stone-700 underline"
-          >
+        <div className="bg-white rounded-2xl border border-zinc-200 shadow-card p-10 text-center">
+          <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+            <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+            </svg>
+          </div>
+          <p className="text-zinc-700 font-semibold mb-1">{error}</p>
+          <button onClick={() => navigate('/')} className="mt-3 text-sm text-brand hover:underline">
             Back to search
           </button>
         </div>
@@ -173,7 +188,6 @@ export default function ResultsPage() {
   if (!data) return null;
 
   const { subject, comps, analysis } = data;
-
   const prop = property || {};
   const ownerName = prop.owner_name || null;
   const quality = prop.quality || null;
@@ -187,7 +201,6 @@ export default function ResultsPage() {
   const zip = subject.zip;
   const nbhdCd = subject.nbhd_cd;
 
-  // YoY — prefer value from comps route (already computed), fall back to calculating
   const yoyChange = subject.yoy_change ?? (priorValue > 0
     ? Math.round(((currentValue - priorValue) / priorValue) * 1000) / 10
     : null);
@@ -202,105 +215,97 @@ export default function ResultsPage() {
   const poolSize = analysis.pool_size || comps.length;
 
   return (
-    <div className="max-w-3xl mx-auto space-y-5">
-      {/* Search bar */}
+    <div className="max-w-3xl mx-auto space-y-4">
       <AddressSearchBar onSelect={acct => navigate(`/results/${acct}`)} />
 
       {/* Property Card */}
-      <div className="bg-white rounded-lg border border-stone-200 shadow-sm p-6">
-        <h2 className="text-xl font-bold text-stone-900 mb-0.5">{subject.address}</h2>
-        <p className="text-sm text-stone-400 mb-5">
-          {ownerName && <span>{ownerName} · </span>}
-          Account {subject.account_number}
-          {zip && <span> · {zip}</span>}
-        </p>
+      <div className="bg-white rounded-2xl border border-zinc-200 shadow-card p-6">
+        <div className="flex items-start justify-between gap-4 mb-5">
+          <div>
+            <h2 className="text-xl font-bold text-zinc-900">{subject.address}</h2>
+            <p className="text-sm text-zinc-400 mt-0.5">
+              {ownerName && <span>{ownerName} · </span>}
+              Account {subject.account_number}
+              {zip && <span> · {zip}</span>}
+            </p>
+          </div>
+          {isOverassessed && (
+            <span className="flex-shrink-0 text-xs font-semibold bg-red-50 text-red-600 px-2.5 py-1 rounded-full">
+              Overassessed
+            </span>
+          )}
+        </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-5">
+          <StatBox label="Assessed Value" value={fmt(currentValue)} />
+          <StatBox label="Prior Year" value={priorValue ? fmt(priorValue) : '—'} />
           <StatBox
-            label="Assessed Value"
-            value={fmt(currentValue)}
-          />
-          <StatBox
-            label="Prior Year"
-            value={priorValue ? fmt(Number(priorValue)) : '—'}
-          />
-          <StatBox
-            label="Year-over-Year Change"
-            value={
-              yoyChange !== null
-                ? `${yoyChange >= 0 ? '+' : ''}${yoyChange.toFixed(1)}%`
-                : '—'
-            }
-            valueClass={yoyChange !== null ? (yoyChange >= 0 ? 'text-red-600' : 'text-green-600') : ''}
+            label="YoY Change"
+            value={yoyChange !== null ? `${yoyChange >= 0 ? '+' : ''}${yoyChange.toFixed(1)}%` : '—'}
+            valueClass={yoyChange !== null ? (yoyChange >= 0 ? 'text-red-500' : 'text-emerald-600') : ''}
           />
           <StatBox
             label="Size / Year Built"
-            value={sqft && yearBuilt ? `${fmtNum(sqft)} sqft | ${yearBuilt}` : sqft ? `${fmtNum(sqft)} sqft` : '—'}
+            value={sqft && yearBuilt ? `${fmtNum(sqft)} sqft · ${yearBuilt}` : sqft ? `${fmtNum(sqft)} sqft` : '—'}
           />
           <StatBox
             label="Beds / Baths"
-            value={beds || baths ? `${beds ?? 'N/A'} / ${baths ?? 'N/A'}` : 'N/A'}
+            value={beds || baths ? `${beds ?? 'N/A'} bd · ${baths ?? 'N/A'} ba` : 'N/A'}
           />
-          <StatBox
-            label="Quality / Condition"
-            value={quality ? quality : '—'}
-          />
+          <StatBox label="Quality" value={quality || '—'} />
           <StatBox
             label="Est. Annual Savings"
             value={annualSavings > 0 ? fmt(annualSavings) : 'None detected'}
-            valueClass={annualSavings > 0 ? 'text-green-600' : 'text-stone-400'}
+            valueClass={annualSavings > 0 ? 'text-emerald-600' : 'text-zinc-400'}
           />
           <StatBox
             label="Est. 5-Year Savings"
             value={fiveYearSavings > 0 ? fmt(fiveYearSavings) : '—'}
-            valueClass={fiveYearSavings > 0 ? 'text-green-600' : 'text-stone-400'}
+            valueClass={fiveYearSavings > 0 ? 'text-emerald-600' : 'text-zinc-400'}
           />
           <StatBox
-            label="vs. Neighborhood Median"
+            label="vs. Neighborhood"
             value={`${percentAbove >= 0 ? '+' : ''}${percentAbove.toFixed(1)}%`}
-            valueClass={isOverassessed ? 'text-red-600' : 'text-green-600'}
+            valueClass={isOverassessed ? 'text-red-500' : 'text-emerald-600'}
           />
         </div>
       </div>
 
       {/* Overassessment Banner */}
       {isOverassessed ? (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-          <h3 className="text-lg font-bold text-green-800 mb-1">
-            Your home appears overassessed by {fmt(potentialSavings)} ({percentAbove.toFixed(1)}%)
-          </h3>
-          <p className="text-sm text-green-700 mb-4">
-            Your home is assessed at {fmt(currentValue)}. Based on {poolSize} similar homes in your
-            neighborhood, the median value is {fmt(Math.round(medianCompValue))}.
+        <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-6">
+          <div className="flex items-center gap-2 mb-1">
+            <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h3 className="text-base font-bold text-emerald-800">
+              Overassessed by {fmt(potentialSavings)} ({percentAbove.toFixed(1)}%)
+            </h3>
+          </div>
+          <p className="text-sm text-emerald-700 mb-5">
+            Your home is assessed at {fmt(currentValue)}, but {poolSize} similar homes in your neighborhood have a median value of {fmt(Math.round(medianCompValue))}.
           </p>
           <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <span className="text-xs uppercase tracking-wide text-green-600 font-medium block mb-0.5">
-                Potential Annual Savings
-              </span>
-              <span className="text-2xl font-bold text-green-700">{fmt(annualSavings)}</span>
+            <div className="bg-white rounded-xl p-4 border border-emerald-100">
+              <span className="text-xs uppercase tracking-wide text-emerald-600 font-semibold block mb-1">Annual Savings</span>
+              <span className="text-2xl font-extrabold text-emerald-700">{fmt(annualSavings)}</span>
             </div>
-            <div>
-              <span className="text-xs uppercase tracking-wide text-green-600 font-medium block mb-0.5">
-                5-Year Savings
-              </span>
-              <span className="text-2xl font-bold text-green-700">{fmt(fiveYearSavings)}</span>
+            <div className="bg-white rounded-xl p-4 border border-emerald-100">
+              <span className="text-xs uppercase tracking-wide text-emerald-600 font-semibold block mb-1">5-Year Savings</span>
+              <span className="text-2xl font-extrabold text-emerald-700">{fmt(fiveYearSavings)}</span>
             </div>
           </div>
-          <p className="text-xs text-green-600">
-            You may be overpaying {fmt(annualSavings)}/year in property taxes.
-          </p>
           {yoyChange !== null && neighborhood?.median_yoy !== null && (
-            <div className="mt-3 pt-3 border-t border-green-200 grid grid-cols-2 gap-4 text-sm">
+            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-emerald-200 text-sm">
               <div>
-                <span className="text-xs text-green-600 uppercase tracking-wide font-medium block mb-0.5">Your Increase</span>
-                <div className={`font-bold text-base ${yoyChange > neighborhood.median_yoy ? 'text-red-600' : 'text-green-700'}`}>
+                <span className="text-xs text-emerald-600 uppercase tracking-wide font-semibold block mb-1">Your Increase</span>
+                <div className={`font-bold text-base ${yoyChange > neighborhood.median_yoy ? 'text-red-500' : 'text-emerald-700'}`}>
                   {yoyChange >= 0 ? '+' : ''}{yoyChange.toFixed(1)}%
                 </div>
               </div>
               <div>
-                <span className="text-xs text-green-600 uppercase tracking-wide font-medium block mb-0.5">Neighborhood Median</span>
-                <div className="font-bold text-base text-green-700">
+                <span className="text-xs text-emerald-600 uppercase tracking-wide font-semibold block mb-1">Neighborhood Median</span>
+                <div className="font-bold text-base text-emerald-700">
                   {neighborhood.median_yoy >= 0 ? '+' : ''}{neighborhood.median_yoy}%
                 </div>
               </div>
@@ -308,23 +313,19 @@ export default function ResultsPage() {
           )}
         </div>
       ) : (
-        <div className="bg-stone-50 border border-stone-200 rounded-lg p-5">
-          <p className="text-stone-700 font-medium">
+        <div className="rounded-2xl bg-zinc-50 border border-zinc-200 p-5">
+          <p className="text-zinc-700 font-semibold text-sm">
             Your assessment looks fair compared to similar homes in your neighborhood.
           </p>
           {yoyChange !== null && neighborhood?.median_yoy !== null && (
-            <div className="mt-3 pt-3 border-t border-stone-200 grid grid-cols-2 gap-4 text-sm">
+            <div className="mt-3 pt-3 border-t border-zinc-200 grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="text-xs text-stone-500 uppercase tracking-wide font-medium block mb-0.5">Your Increase</span>
-                <div className="font-bold text-base text-stone-700">
-                  {yoyChange >= 0 ? '+' : ''}{yoyChange.toFixed(1)}%
-                </div>
+                <span className="text-xs text-zinc-500 uppercase tracking-wide font-semibold block mb-1">Your Increase</span>
+                <div className="font-bold text-zinc-800">{yoyChange >= 0 ? '+' : ''}{yoyChange.toFixed(1)}%</div>
               </div>
               <div>
-                <span className="text-xs text-stone-500 uppercase tracking-wide font-medium block mb-0.5">Neighborhood Median</span>
-                <div className="font-bold text-base text-stone-700">
-                  {neighborhood.median_yoy >= 0 ? '+' : ''}{neighborhood.median_yoy}%
-                </div>
+                <span className="text-xs text-zinc-500 uppercase tracking-wide font-semibold block mb-1">Neighborhood Median</span>
+                <div className="font-bold text-zinc-800">{neighborhood.median_yoy >= 0 ? '+' : ''}{neighborhood.median_yoy}%</div>
               </div>
             </div>
           )}
@@ -332,11 +333,11 @@ export default function ResultsPage() {
       )}
 
       {/* Comparable Properties */}
-      <div className="bg-white rounded-lg border border-stone-200 shadow-sm p-6">
-        <div className="flex items-baseline gap-3 mb-4">
-          <h3 className="font-bold text-stone-900">Comparable Properties</h3>
+      <div className="bg-white rounded-2xl border border-zinc-200 shadow-card p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <h3 className="font-bold text-zinc-900">Comparable Properties</h3>
           {streetCompCount > 0 && (
-            <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded font-medium">
+            <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-semibold">
               {streetCompCount} on your street
             </span>
           )}
@@ -344,32 +345,32 @@ export default function ResultsPage() {
         <div className="overflow-x-auto -mx-6">
           <table className="min-w-full text-sm">
             <thead>
-              <tr className="border-b border-stone-200">
-                <th className="px-6 py-2 text-left text-xs uppercase tracking-wide text-stone-400 font-medium">Address</th>
-                <th className="px-4 py-2 text-right text-xs uppercase tracking-wide text-stone-400 font-medium">Assessed</th>
-                <th className="px-4 py-2 text-right text-xs uppercase tracking-wide text-stone-400 font-medium">Sqft</th>
-                <th className="px-4 py-2 text-right text-xs uppercase tracking-wide text-stone-400 font-medium">Year</th>
-                <th className="px-4 py-2 text-right text-xs uppercase tracking-wide text-stone-400 font-medium">Beds</th>
-                <th className="px-4 py-2 text-right text-xs uppercase tracking-wide text-stone-400 font-medium">Baths</th>
-                <th className="px-4 py-2 text-right text-xs uppercase tracking-wide text-stone-400 font-medium">Match</th>
+              <tr className="border-b border-zinc-100">
+                <th className="px-6 py-2.5 text-left text-xs uppercase tracking-wide text-zinc-400 font-semibold">Address</th>
+                <th className="px-4 py-2.5 text-right text-xs uppercase tracking-wide text-zinc-400 font-semibold">Assessed</th>
+                <th className="px-4 py-2.5 text-right text-xs uppercase tracking-wide text-zinc-400 font-semibold">Sqft</th>
+                <th className="px-4 py-2.5 text-right text-xs uppercase tracking-wide text-zinc-400 font-semibold">Year</th>
+                <th className="px-4 py-2.5 text-right text-xs uppercase tracking-wide text-zinc-400 font-semibold">Bed</th>
+                <th className="px-4 py-2.5 text-right text-xs uppercase tracking-wide text-zinc-400 font-semibold">Bath</th>
+                <th className="px-4 py-2.5 text-right text-xs uppercase tracking-wide text-zinc-400 font-semibold">Match</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone-100">
+            <tbody className="divide-y divide-zinc-50">
               {comps.map(c => (
-                <tr key={c.account_number} className={`${c.on_street ? 'bg-amber-50 hover:bg-amber-100' : 'hover:bg-stone-50'}`}>
-                  <td className="px-6 py-3 text-stone-700">
+                <tr key={c.account_number} className={c.on_street ? 'bg-amber-50/60' : 'hover:bg-slate-50'}>
+                  <td className="px-6 py-3 text-zinc-700 font-medium">
                     {c.address}
                     {c.on_street && (
-                      <span className="ml-2 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium">Same street</span>
+                      <span className="ml-2 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-semibold">Same street</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-right text-stone-700">{fmt(c.total_value)}</td>
-                  <td className="px-4 py-3 text-right text-stone-500">{Number(c.sqft).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-right text-stone-500">{c.year_built}</td>
-                  <td className="px-4 py-3 text-right text-stone-500">{c.beds ?? '—'}</td>
-                  <td className="px-4 py-3 text-right text-stone-500">{c.baths ?? '—'}</td>
+                  <td className="px-4 py-3 text-right font-semibold text-zinc-800">{fmt(c.total_value)}</td>
+                  <td className="px-4 py-3 text-right text-zinc-500">{Number(c.sqft).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-right text-zinc-500">{c.year_built}</td>
+                  <td className="px-4 py-3 text-right text-zinc-500">{c.beds ?? '—'}</td>
+                  <td className="px-4 py-3 text-right text-zinc-500">{c.baths ?? '—'}</td>
                   <td className="px-4 py-3 text-right">
-                    <span className={`font-semibold ${c.match_pct >= 80 ? 'text-green-600' : 'text-stone-400'}`}>
+                    <span className={`font-bold text-xs px-2 py-0.5 rounded-full ${c.match_pct >= 80 ? 'bg-emerald-50 text-emerald-700' : 'bg-zinc-100 text-zinc-400'}`}>
                       {c.match_pct}%
                     </span>
                   </td>
@@ -382,61 +383,46 @@ export default function ResultsPage() {
 
       {/* Neighborhood Overview */}
       {neighborhood && (
-        <div className="bg-white rounded-lg border border-stone-200 shadow-sm p-6">
-          <h3 className="font-bold text-stone-900 mb-4">
+        <div className="bg-white rounded-2xl border border-zinc-200 shadow-card p-6">
+          <h3 className="font-bold text-zinc-900 mb-4">
             Neighborhood Overview
-            {nbhdCd
-              ? <span className="text-stone-400 font-normal text-sm ml-2">(code: {nbhdCd})</span>
-              : zip && <span className="text-stone-400 font-normal text-sm ml-2">(zip: {zip})</span>
-            }
+            <span className="text-zinc-400 font-normal text-sm ml-2">
+              {nbhdCd ? `code ${nbhdCd}` : zip}
+            </span>
           </h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
-            <div>
-              <span className="text-xs uppercase tracking-wide text-stone-500 font-medium block mb-0.5">Properties</span>
-              <span className="text-lg font-semibold text-stone-900">{fmtNum(neighborhood.count)}</span>
-            </div>
-            <div>
-              <span className="text-xs uppercase tracking-wide text-stone-500 font-medium block mb-0.5">Avg Assessment</span>
-              <span className="text-lg font-semibold text-stone-900">{fmt(neighborhood.avg_value)}</span>
-            </div>
-            <div>
-              <span className="text-xs uppercase tracking-wide text-stone-500 font-medium block mb-0.5">Median Assessment</span>
-              <span className="text-lg font-semibold text-stone-900">{fmt(neighborhood.median_value)}</span>
-            </div>
-            <div>
-              <span className="text-xs uppercase tracking-wide text-stone-500 font-medium block mb-0.5">Avg Sqft</span>
-              <span className="text-lg font-semibold text-stone-900">{fmtNum(neighborhood.avg_sqft)}</span>
-            </div>
+            <StatBox label="Properties" value={fmtNum(neighborhood.count)} />
+            <StatBox label="Avg Assessment" value={fmt(neighborhood.avg_value)} />
+            <StatBox label="Median Assessment" value={fmt(neighborhood.median_value)} />
+            <StatBox label="Avg Sqft" value={fmtNum(neighborhood.avg_sqft)} />
             {neighborhood.median_yoy !== null && (
-              <div>
-                <span className="text-xs uppercase tracking-wide text-stone-500 font-medium block mb-0.5">Median YoY Change</span>
-                <span className="text-lg font-semibold text-stone-900">
-                  {neighborhood.median_yoy >= 0 ? '+' : ''}{neighborhood.median_yoy}%
-                </span>
-              </div>
+              <StatBox
+                label="Median YoY"
+                value={`${neighborhood.median_yoy >= 0 ? '+' : ''}${neighborhood.median_yoy}%`}
+              />
             )}
           </div>
         </div>
       )}
 
-      {/* CTA — Get Appeal Packet */}
-      <div className="bg-stone-800 rounded-lg p-6 text-white">
+      {/* CTA */}
+      <div className="rounded-2xl bg-brand p-6 text-white">
         <h3 className="text-xl font-bold mb-1">Get Your Appeal Packet</h3>
-        <p className="text-stone-300 text-sm mb-4">
-          Pre-filled with your property data and {comps.length} comparable properties. Ready to file with Harris County.
+        <p className="text-indigo-200 text-sm mb-4">
+          Pre-filled with your property data and {comps.length} comparable properties. Ready to file with Harris County ARB.
         </p>
         {isOverassessed && (
-          <p className="text-green-400 text-sm mb-5">
-            You could save {fmt(annualSavings)}/year. The packet is free.
+          <p className="text-emerald-300 text-sm font-semibold mb-5">
+            Potential savings: {fmt(annualSavings)}/year · {fmt(fiveYearSavings)} over 5 years
           </p>
         )}
-        {error && <p className="text-red-400 text-sm mb-3">{error}</p>}
+        {error && <p className="text-red-300 text-sm mb-3">{error}</p>}
         <button
           onClick={generatePacket}
           disabled={generating}
-          className="w-full bg-white text-stone-900 font-bold py-3 rounded-lg hover:bg-stone-100 transition-colors disabled:opacity-60 text-base"
+          className="w-full bg-white text-brand font-bold py-3 rounded-xl hover:bg-indigo-50 transition-colors disabled:opacity-60 text-base"
         >
-          {generating ? 'Generating…' : 'Get Your Appeal Packet — Free'}
+          {generating ? 'Generating…' : 'Get Your Free Appeal Packet'}
         </button>
       </div>
     </div>
