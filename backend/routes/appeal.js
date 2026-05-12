@@ -28,7 +28,7 @@ router.post('/generate', async (req, res) => {
   const sqftMin = Math.floor(sqft * 0.8);
   const sqftMax = Math.ceil(sqft * 1.2);
 
-  // Use nbhd_cd for tight neighborhood comps; fall back to zip
+  // Evidence comps: year-filtered, closest sqft, up to 10 — shown in the packet table
   const geoCol = property.nbhd_cd ? 'p.nbhd_cd' : 'p.zip';
   const geoVal = property.nbhd_cd || property.zip;
 
@@ -52,9 +52,50 @@ router.post('/generate', async (req, res) => {
     args: [geoVal, accountNumber, sqftMin, sqftMax, yearBuilt - 10, yearBuilt + 10, sqft],
   });
 
+  // Full pool (no year filter, no limit) for statistically robust median — same as results page
+  let { rows: poolRows } = await db.execute({
+    sql: `SELECT ROUND(CAST(p.total_value AS REAL) / b.sqft, 2) AS value_per_sqft
+          FROM properties p
+          JOIN buildings b ON b.account_number = p.account_number
+          WHERE ${geoCol} = ?
+            AND p.account_number != ?
+            AND b.sqft BETWEEN ? AND ?
+            AND b.sqft > 0
+            AND p.total_value > 0
+            AND p.account_number = (
+              SELECT MIN(p2.account_number) FROM properties p2 WHERE p2.address = p.address
+            )`,
+    args: [geoVal, accountNumber, sqftMin, sqftMax],
+  });
+
+  // Fall back to zip pool if nbhd pool is too small
+  if (poolRows.length < 5 && property.nbhd_cd) {
+    const { rows: zipRows } = await db.execute({
+      sql: `SELECT ROUND(CAST(p.total_value AS REAL) / b.sqft, 2) AS value_per_sqft
+            FROM properties p
+            JOIN buildings b ON b.account_number = p.account_number
+            WHERE p.zip = ?
+              AND p.account_number != ?
+              AND b.sqft BETWEEN ? AND ?
+              AND b.year_built BETWEEN ? AND ?
+              AND b.sqft > 0
+              AND p.total_value > 0
+              AND p.account_number = (
+                SELECT MIN(p2.account_number) FROM properties p2 WHERE p2.address = p.address
+              )`,
+      args: [property.zip, accountNumber, sqftMin, sqftMax, yearBuilt - 10, yearBuilt + 10],
+    });
+    poolRows = zipRows;
+  }
+
+  const poolVPS = poolRows.length >= 5
+    ? poolRows.map(r => Number(r.value_per_sqft))
+    : comps.map(c => Number(c.value_per_sqft));
+
   const subjectVPS = sqft ? Number(property.total_value) / sqft : 0;
-  const med = median(comps.map(c => Number(c.value_per_sqft)));
+  const med = median(poolVPS);
   const potentialSavings = Math.max(0, Math.round((subjectVPS - med) * sqft));
+  const annualTaxSavings = Math.round(potentialSavings * 0.021);
   const taxYear = Number(property.tax_year) || new Date().getFullYear();
 
   const packetData = {
@@ -64,6 +105,8 @@ router.post('/generate', async (req, res) => {
       median_value_per_sqft: Math.round(med * 100) / 100,
       subject_value_per_sqft: Math.round(subjectVPS * 100) / 100,
       potential_savings: potentialSavings,
+      annual_tax_savings: annualTaxSavings,
+      pool_size: poolRows.length,
     },
     deadline: `May 15, ${taxYear}`,
     generatedAt: new Date().toISOString(),
@@ -141,9 +184,9 @@ Account: ${property.account_number} &nbsp;|&nbsp; ${property.address}, ${propert
 Tax Year: ${property.tax_year} &nbsp;|&nbsp; Deadline: <span class="highlight">${deadline}</span></p>
 
 <div class="summary-box">
-  <strong>Potential Savings: <span class="highlight">${fmt(analysis.potential_savings)}</span></strong><br>
-  Your assessed value per sqft: <strong>${fmt(analysis.subject_value_per_sqft)}/sqft</strong><br>
-  Median for comparable homes: <strong>${fmt(analysis.median_value_per_sqft)}/sqft</strong>
+  <strong>Estimated Value Reduction: <span class="highlight">${fmt(analysis.potential_savings)}</span></strong><br>
+  Est. Annual Tax Savings: <strong class="highlight">~${fmt(analysis.annual_tax_savings)}/year</strong> (at ~2.1% effective rate)<br>
+  Your assessed value: <strong>${fmt(analysis.subject_value_per_sqft)}/sqft</strong> &nbsp;|&nbsp; Neighborhood median: <strong>${fmt(analysis.median_value_per_sqft)}/sqft</strong>
 </div>
 
 <h2>1. Cover Page</h2>
@@ -155,7 +198,8 @@ Tax Year: ${property.tax_year} &nbsp;|&nbsp; Deadline: <span class="highlight">$
   <tr><th>Sqft / Year Built</th><td>${sqft.toLocaleString()} sqft / ${property.year_built}</td></tr>
   <tr><th>Beds / Baths</th><td>${property.beds} / ${property.baths}</td></tr>
   <tr><th>Estimated Fair Value</th><td>${fmt(analysis.median_value_per_sqft * sqft)}</td></tr>
-  <tr><th>Potential Reduction</th><td class="highlight">${fmt(analysis.potential_savings)}</td></tr>
+  <tr><th>Estimated Value Reduction</th><td class="highlight">${fmt(analysis.potential_savings)}</td></tr>
+  <tr><th>Est. Annual Tax Savings</th><td class="highlight">~${fmt(analysis.annual_tax_savings)}/year</td></tr>
 </table>
 
 <h2>2. Formal Appeal Letter</h2>

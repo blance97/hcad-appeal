@@ -43,11 +43,12 @@ export async function generateAppealPdf(data) {
   y -= 16;
 
   // Summary box
-  page.drawRectangle({ x: 50, y: y - 60, width: 512, height: 70, color: LIGHT_RED_BG, borderColor: RED, borderWidth: 1 });
-  text(page, 'Estimated Potential Savings', 66, y - 8, { font: helveticaBold, size: 11 });
+  page.drawRectangle({ x: 50, y: y - 72, width: 512, height: 82, color: LIGHT_RED_BG, borderColor: RED, borderWidth: 1 });
+  text(page, 'Estimated Value Reduction', 66, y - 8, { font: helveticaBold, size: 11 });
   text(page, fmt(analysis.potential_savings), 66, y - 24, { font: helveticaBold, size: 20, color: RED });
-  text(page, `Your assessed value: ${fmt(analysis.subject_value_per_sqft)}/sqft   |   Comparable median: ${fmt(analysis.median_value_per_sqft)}/sqft`, 66, y - 44, { size: 9, color: GRAY });
-  y -= 80;
+  text(page, `Est. annual tax savings: ~${fmt(analysis.annual_tax_savings)}/year  (at ~2.1% effective rate)`, 66, y - 44, { size: 9, color: RED });
+  text(page, `Your assessed value: ${fmt(analysis.subject_value_per_sqft)}/sqft   |   Neighborhood median: ${fmt(analysis.median_value_per_sqft)}/sqft`, 66, y - 56, { size: 9, color: GRAY });
+  y -= 92;
 
   const rows = [
     ['Owner', property.owner_name || 'N/A'],
@@ -56,6 +57,7 @@ export async function generateAppealPdf(data) {
     ['Year Built', String(property.year_built)],
     ['Beds / Baths', `${property.beds} / ${property.baths}`],
     ['Estimated Fair Value', fmt(analysis.median_value_per_sqft * property.sqft)],
+    ['Est. Annual Tax Savings', `~${fmt(analysis.annual_tax_savings)}/year`],
   ];
 
   for (const [label, val] of rows) {
