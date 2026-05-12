@@ -285,7 +285,7 @@ export default function ResultsPage() {
           <p className="text-sm text-emerald-700 mb-5">
             Your home is assessed at {fmt(currentValue)}, but {poolSize} similar homes in your neighborhood have a median value of {fmt(Math.round(medianCompValue))}.
           </p>
-          <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-2 gap-4 mb-3">
             <div className="bg-white rounded-xl p-4 border border-emerald-100">
               <span className="text-xs uppercase tracking-wide text-emerald-600 font-semibold block mb-1">Annual Savings</span>
               <span className="text-2xl font-extrabold text-emerald-700">{fmt(annualSavings)}</span>
@@ -295,6 +295,19 @@ export default function ResultsPage() {
               <span className="text-2xl font-extrabold text-emerald-700">{fmt(fiveYearSavings)}</span>
             </div>
           </div>
+          <details className="group mb-4">
+            <summary className="text-xs text-emerald-600/70 cursor-pointer hover:text-emerald-700 transition-colors list-none flex items-center gap-1 select-none">
+              <svg className="w-3 h-3 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+              How these numbers are calculated
+            </summary>
+            <div className="mt-2 text-xs text-emerald-700/80 leading-relaxed space-y-1.5 pl-4">
+              <p><span className="font-semibold">Value reduction ({fmt(potentialSavings)}):</span> The gap between your assessed value per sqft ({fmt(analysis.subject_value_per_sqft)}/sqft) and the neighborhood median ({fmt(analysis.median_value_per_sqft)}/sqft), multiplied by your {Number(subject.sqft).toLocaleString()} sqft. Based on {poolSize} similar homes in your HCAD neighborhood.</p>
+              <p><span className="font-semibold">Annual savings ({fmt(annualSavings)}):</span> Value reduction × 2.1% — the approximate effective property tax rate in Harris County. Your actual rate depends on your specific taxing entities (city, school district, MUD, etc.).</p>
+              <p><span className="font-semibold">Note:</span> These are estimates. HCAD may not grant the full reduction. Filing is free and your value cannot increase as a result of a protest.</p>
+            </div>
+          </details>
           {yoyChange !== null && neighborhood?.median_yoy !== null && (
             <div className="grid grid-cols-2 gap-4 pt-4 border-t border-emerald-200 text-sm">
               <div>
