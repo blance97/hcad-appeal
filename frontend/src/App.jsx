@@ -1,11 +1,17 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
 import HomePage from './pages/HomePage.jsx';
 import ResultsPage from './pages/ResultsPage.jsx';
 import PacketPage from './pages/PacketPage.jsx';
 import StatsPage from './pages/StatsPage.jsx';
+import { useCounty } from './CountyContext.jsx';
 
 export default function App() {
+  const { cad_name, county_name } = useCounty();
+
+  useEffect(() => {
+    document.title = `${cad_name} Appeal — Free ${county_name} Property Tax Calculator`;
+  }, [cad_name, county_name]);
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
       <header className="bg-white border-b border-zinc-200 px-4 py-3.5 sticky top-0 z-20">
@@ -16,7 +22,7 @@ export default function App() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955a1.126 1.126 0 011.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
               </svg>
             </div>
-            <span className="font-bold text-zinc-900 tracking-tight">HCAD Appeal</span>
+            <span className="font-bold text-zinc-900 tracking-tight">{cad_name} Appeal</span>
           </Link>
           <div className="flex items-center gap-3">
             <a href="https://github.com/blance97/hcad-appeal" target="_blank" rel="noopener noreferrer" className="text-zinc-400 hover:text-zinc-700 transition-colors" title="View source on GitHub">
@@ -31,7 +37,7 @@ export default function App() {
             </a>
             <span className="text-xs font-medium text-zinc-400 hidden sm:flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span>
-              Harris County · Free
+              {county_name} · Free
             </span>
           </div>
         </div>
@@ -47,7 +53,7 @@ export default function App() {
       </main>
 
       <footer className="border-t border-zinc-200 bg-white px-4 py-5 text-center text-xs text-zinc-400">
-        Data sourced from HCAD public records · Not legal or tax advice · Free, no account required
+        Data sourced from {cad_name} public records · Not legal or tax advice · Free, no account required
       </footer>
     </div>
   );
