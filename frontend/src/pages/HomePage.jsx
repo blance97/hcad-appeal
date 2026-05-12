@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 const FAQS = [
   {
     q: 'What is a property tax appeal?',
-    a: 'A property tax appeal (called a "protest" in Texas) is your right to challenge the value HCAD places on your home. If your assessed value is higher than what comparable homes are assessed at, you can formally request a reduction — and HCAD must consider your evidence.',
+    a: 'A property tax appeal (called a "protest" in Texas) is your right to challenge the value HCAD places on your home. If your assessed value is higher than what comparable homes are assessed at, you can formally request a reduction. HCAD must consider your evidence.',
   },
   {
     q: 'How do I know if I\'m overassessed?',
@@ -12,7 +12,7 @@ const FAQS = [
   },
   {
     q: 'What\'s the deadline to file?',
-    a: 'In Texas, the deadline to protest is May 15 (or 30 days after your appraisal notice is mailed, whichever is later). There are no extensions — if you miss it, you wait until next year.',
+    a: 'In Texas, the deadline to protest is May 15 (or 30 days after your appraisal notice is mailed, whichever is later). There are no extensions. Miss it and you wait until next year.',
   },
   {
     q: 'What\'s in the appeal packet?',
@@ -20,15 +20,15 @@ const FAQS = [
   },
   {
     q: 'Do I need to go to a hearing?',
-    a: 'Not always. Most reductions happen at the informal hearing — a short meeting with an HCAD appraiser where you present your comps. If you\'re unsatisfied, you can escalate to a formal ARB (Appraisal Review Board) hearing. Filing online via iFile.hcad.org schedules this automatically.',
+    a: 'Not always. Most reductions happen at the informal hearing, a short meeting with an HCAD appraiser where you present your comps. If you\'re unsatisfied, you can escalate to a formal ARB (Appraisal Review Board) hearing. Filing online at iFile.hcad.org schedules this automatically.',
   },
   {
     q: 'What if my appeal doesn\'t succeed?',
-    a: 'There\'s no downside to filing — HCAD cannot raise your value as a result of a protest. Worst case, your value stays the same. You can also try again next year when new assessment notices come out.',
+    a: 'There\'s no downside to filing. HCAD cannot raise your value as a result of a protest. Worst case, your value stays the same. You can always try again next year when new assessment notices come out.',
   },
   {
     q: 'Why is this free?',
-    a: 'This tool was built by a Houston homeowner who went through the appeal process and thought it should be easier. The data is already public — HCAD publishes it every year. No reason to charge for access to your own public records.',
+    a: 'This tool was built by a Houston homeowner who went through the appeal process and thought it should be easier. The data is already public. HCAD publishes it every year. No reason to charge for access to your own public records.',
   },
 ];
 
@@ -194,7 +194,7 @@ export default function HomePage() {
           {[
             { name: 'Ownwell', keep: '$650–$750', cut: '25–35% of savings', muted: true },
             { name: 'Tax Consultant', keep: '$600–$700', cut: '30–40% of savings', muted: true },
-            { name: 'This tool', keep: '$1,000', cut: '$0 — completely free', highlight: true },
+            { name: 'This tool', keep: '$1,000', cut: '$0. Completely free.', highlight: true },
           ].map(({ name, keep, cut, highlight, muted }) => (
             <div key={name} className={`rounded-xl border p-4 text-center ${highlight ? 'border-brand bg-brand-light' : 'border-zinc-200 bg-white'}`}>
               <div className={`text-xs font-semibold mb-2 ${highlight ? 'text-brand' : 'text-zinc-400'}`}>{name}</div>
