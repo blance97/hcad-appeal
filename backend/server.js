@@ -18,7 +18,15 @@ app.use('/api/comps', compsRouter);
 app.use('/api/appeal', appealRouter);
 app.use('/api/neighborhood', neighborhoodRouter);
 
-app.get('/api/health', (_, res) => res.json({ status: 'ok' }));
+app.get('/api/health', async (_, res) => {
+  try {
+    const { getDb } = await import('./db/database.js');
+    const { rows } = await getDb().execute('SELECT MAX(tax_year) AS tax_year FROM properties');
+    res.json({ status: 'ok', tax_year: Number(rows[0]?.tax_year) || null });
+  } catch {
+    res.json({ status: 'ok', tax_year: null });
+  }
+});
 
 app.use((err, _req, res, _next) => {
   console.error(err);

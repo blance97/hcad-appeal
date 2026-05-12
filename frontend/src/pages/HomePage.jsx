@@ -6,8 +6,16 @@ export default function HomePage() {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [taxYear, setTaxYear] = useState(null);
   const navigate = useNavigate();
   const debounce = useRef(null);
+
+  React.useEffect(() => {
+    fetch('/api/health')
+      .then(r => r.json())
+      .then(d => { if (d.tax_year) setTaxYear(d.tax_year); })
+      .catch(() => {});
+  }, []);
 
   async function search(q) {
     if (q.trim().length < 3) { setResults([]); return; }
@@ -37,7 +45,7 @@ export default function HomePage() {
       {/* Hero */}
       <div className="text-center mb-8 pt-8">
         <div className="inline-flex items-center gap-2 bg-brand-light text-brand text-xs font-semibold px-3 py-1.5 rounded-full mb-6 uppercase tracking-wide">
-          Harris County, Texas · {new Date().getFullYear()} Tax Year
+          Harris County, Texas{taxYear ? ` · ${taxYear} Tax Year` : ''}
         </div>
         <h1 className="text-4xl sm:text-5xl font-extrabold text-zinc-900 mb-4 leading-tight tracking-tight">
           Are You Overpaying<br />
