@@ -5,6 +5,15 @@ import { logEvent } from '../db/events.js';
 
 const router = Router();
 
+const COUNTY = {
+  county_name:   process.env.COUNTY_NAME   || 'Harris County',
+  cad_name:      process.env.CAD_NAME      || 'HCAD',
+  cad_full_name: process.env.CAD_FULL_NAME || 'Harris County Appraisal District',
+  filing_url:    process.env.FILING_URL    || 'iFile.hcad.org',
+  tax_rate:      parseFloat(process.env.TAX_RATE) || 0.021,
+  arb_address:   process.env.ARB_ADDRESS   || 'P.O. Box 922012, Houston, TX 77292-2012',
+};
+
 router.post('/generate', async (req, res) => {
   const { accountNumber } = req.body;
   if (!accountNumber) return res.status(400).json({ error: 'accountNumber required' });
@@ -95,7 +104,7 @@ router.post('/generate', async (req, res) => {
   const subjectVPS = sqft ? Number(property.total_value) / sqft : 0;
   const med = median(poolVPS);
   const potentialSavings = Math.max(0, Math.round((subjectVPS - med) * sqft));
-  const annualTaxSavings = Math.round(potentialSavings * 0.021);
+  const annualTaxSavings = Math.round(potentialSavings * COUNTY.tax_rate);
   const taxYear = Number(property.tax_year) || new Date().getFullYear();
 
   const packetData = {
@@ -108,6 +117,7 @@ router.post('/generate', async (req, res) => {
       annual_tax_savings: annualTaxSavings,
       pool_size: poolRows.length,
     },
+    county: COUNTY,
     deadline: `May 15, ${taxYear}`,
     generatedAt: new Date().toISOString(),
   };
@@ -157,7 +167,13 @@ function fmt(n) {
 }
 
 function renderHtml(data) {
-  const { property, comps, analysis, deadline } = data;
+  const { property, comps, analysis, deadline, county = {} } = data;
+  const cadFullName = county.cad_full_name || 'Harris County Appraisal District';
+  const cadName = county.cad_name || 'HCAD';
+  const countyName = county.county_name || 'Harris County';
+  const filingUrl = county.filing_url || 'iFile.hcad.org';
+  const taxRate = county.tax_rate || 0.021;
+  const arbAddress = county.arb_address || 'P.O. Box 922012, Houston, TX 77292-2012';
   const sqft = Number(property.sqft);
   return `<!DOCTYPE html>
 <html lang="en">
@@ -179,13 +195,13 @@ function renderHtml(data) {
 <body>
 
 <h1>Property Tax Appeal Packet</h1>
-<p><strong>Harris County Appraisal District (HCAD)</strong><br>
+<p><strong>${cadFullName} (${cadName})</strong><br>
 Account: ${property.account_number} &nbsp;|&nbsp; ${property.address}, ${property.city} ${property.zip}<br>
 Tax Year: ${property.tax_year} &nbsp;|&nbsp; Deadline: <span class="highlight">${deadline}</span></p>
 
 <div class="summary-box">
   <strong>Estimated Value Reduction: <span class="highlight">${fmt(analysis.potential_savings)}</span></strong><br>
-  Est. Annual Tax Savings: <strong class="highlight">~${fmt(analysis.annual_tax_savings)}/year</strong> (at ~2.1% effective rate)<br>
+  Est. Annual Tax Savings: <strong class="highlight">~${fmt(analysis.annual_tax_savings)}/year</strong> (at ~${(taxRate * 100).toFixed(1)}% effective rate)<br>
   Your assessed value: <strong>${fmt(analysis.subject_value_per_sqft)}/sqft</strong> &nbsp;|&nbsp; Neighborhood median: <strong>${fmt(analysis.median_value_per_sqft)}/sqft</strong>
 </div>
 
@@ -205,9 +221,8 @@ Tax Year: ${property.tax_year} &nbsp;|&nbsp; Deadline: <span class="highlight">$
 <h2>2. Formal Appeal Letter</h2>
 <p>
 ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}<br><br>
-Harris County Appraisal Review Board<br>
-P.O. Box 922012<br>
-Houston, TX 77292-2012<br><br>
+${countyName} Appraisal Review Board<br>
+${arbAddress}<br><br>
 <strong>Re: Protest of Appraised Value — Account No. ${property.account_number}</strong><br><br>
 Dear Members of the Appraisal Review Board,<br><br>
 I am writing to formally protest the ${property.tax_year} appraised value of my property located at
@@ -255,7 +270,7 @@ ${property.city}, TX ${property.zip}
 
 <h2>4. Filing Instructions</h2>
 <ol>
-  <li>File your protest online at <strong>iFile.hcad.org</strong> or mail to HCAD before <strong>${deadline}</strong>.</li>
+  <li>File your protest online at <strong>${filingUrl}</strong> or mail to ${cadName} before <strong>${deadline}</strong>.</li>
   <li>Select protest reason: <em>"Value is over market value"</em> and/or <em>"Value is unequal compared to other properties."</em></li>
   <li>Upload or bring this packet as your evidence at the informal/formal hearing.</li>
   <li>At the informal hearing, present the comp table. Most reductions happen here.</li>
@@ -264,9 +279,9 @@ ${property.city}, TX ${property.zip}
 
 <h2>5. Deadline Checklist</h2>
 <ul>
-  <li>☐ File protest at iFile.hcad.org by <strong>${deadline}</strong></li>
+  <li>☐ File protest at ${filingUrl} by <strong>${deadline}</strong></li>
   <li>☐ Print or save this packet as evidence</li>
-  <li>☐ Note your hearing date from HCAD confirmation email</li>
+  <li>☐ Note your hearing date from ${cadName} confirmation email</li>
   <li>☐ Gather any photos of property defects, repair estimates, or recent sales in your area</li>
   <li>☐ Attend informal hearing — bring printed comps table</li>
   <li>☐ Review written decision from ARB</li>
@@ -275,7 +290,7 @@ ${property.city}, TX ${property.zip}
 <h2>6. Legal Disclaimer</h2>
 <p style="font-size:12px;color:#6b7280;">
 This document is generated for informational purposes only and does not constitute legal or tax advice.
-The comparable property data is sourced from HCAD public records and may not reflect the most recent
+The comparable property data is sourced from ${cadName} public records and may not reflect the most recent
 sales or assessments. Results are estimates only. Consult a licensed property tax consultant or attorney
 for professional advice. Filing a protest does not guarantee a reduction in your assessed value.
 </p>

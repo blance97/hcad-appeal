@@ -10,7 +10,11 @@ function fmt(n) {
 }
 
 export async function generateAppealPdf(data) {
-  const { property, comps, analysis, deadline } = data;
+  const { property, comps, analysis, deadline, county = {} } = data;
+  const cadFullName = county.cad_full_name || 'Harris County Appraisal District';
+  const countyName = county.county_name || 'Harris County';
+  const taxRate = county.tax_rate || 0.021;
+  const arbAddress = county.arb_address || 'P.O. Box 922012, Houston, TX 77292-2012';
   const doc = await PDFDocument.create();
   const helveticaBold = await doc.embedFont(StandardFonts.HelveticaBold);
   const helvetica = await doc.embedFont(StandardFonts.Helvetica);
@@ -32,7 +36,7 @@ export async function generateAppealPdf(data) {
   // --- Page 1: Cover ---
   let { page, y } = addPage();
   y = text(page, 'PROPERTY TAX APPEAL PACKET', 50, y, { font: helveticaBold, size: 18, color: RED });
-  y = text(page, 'Harris County Appraisal District', 50, y - 4, { size: 12, color: GRAY });
+  y = text(page, cadFullName, 50, y - 4, { size: 12, color: GRAY });
   y -= 8;
   line(page, y);
   y -= 16;
@@ -46,7 +50,7 @@ export async function generateAppealPdf(data) {
   page.drawRectangle({ x: 50, y: y - 72, width: 512, height: 82, color: LIGHT_RED_BG, borderColor: RED, borderWidth: 1 });
   text(page, 'Estimated Value Reduction', 66, y - 8, { font: helveticaBold, size: 11 });
   text(page, fmt(analysis.potential_savings), 66, y - 24, { font: helveticaBold, size: 20, color: RED });
-  text(page, `Est. annual tax savings: ~${fmt(analysis.annual_tax_savings)}/year  (at ~2.1% effective rate)`, 66, y - 44, { size: 9, color: RED });
+  text(page, `Est. annual tax savings: ~${fmt(analysis.annual_tax_savings)}/year  (at ~${(taxRate * 100).toFixed(1)}% effective rate)`, 66, y - 44, { size: 9, color: RED });
   text(page, `Your assessed value: ${fmt(analysis.subject_value_per_sqft)}/sqft   |   Neighborhood median: ${fmt(analysis.median_value_per_sqft)}/sqft`, 66, y - 56, { size: 9, color: GRAY });
   y -= 92;
 
@@ -72,8 +76,8 @@ export async function generateAppealPdf(data) {
   y -= 8; line(page, y); y -= 16;
   y = text(page, new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), 50, y);
   y -= 8;
-  y = text(page, 'Harris County Appraisal Review Board', 50, y, { font: helveticaBold });
-  y = text(page, 'P.O. Box 922012, Houston, TX 77292-2012', 50, y);
+  y = text(page, `${countyName} Appraisal Review Board`, 50, y, { font: helveticaBold });
+  y = text(page, arbAddress, 50, y);
   y -= 8;
   y = text(page, `Re: Protest of Appraised Value — Account No. ${property.account_number}`, 50, y, { font: helveticaBold });
   y -= 8;
