@@ -32,6 +32,12 @@ export async function initDb() {
     'ALTER TABLE properties ADD COLUMN prior_total_value INTEGER',
     'ALTER TABLE properties ADD COLUMN nbhd_cd TEXT',
     'CREATE INDEX IF NOT EXISTS idx_properties_nbhd ON properties(nbhd_cd)',
+    `CREATE TABLE IF NOT EXISTS events (
+       id INTEGER PRIMARY KEY AUTOINCREMENT,
+       event TEXT NOT NULL, value TEXT, ip TEXT,
+       ts TEXT DEFAULT (datetime('now')))`,
+    'CREATE INDEX IF NOT EXISTS idx_events_ts ON events(ts)',
+    'CREATE INDEX IF NOT EXISTS idx_events_event ON events(event)',
   ];
   for (const m of migrations) {
     try { await db.execute(m); } catch { /* column already exists */ }

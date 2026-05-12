@@ -41,6 +41,16 @@ CREATE TABLE IF NOT EXISTS appeal_packets (
   status         TEXT DEFAULT 'draft'
 );
 
+CREATE TABLE IF NOT EXISTS events (
+  id    INTEGER PRIMARY KEY AUTOINCREMENT,
+  event TEXT NOT NULL,
+  value TEXT,
+  ip    TEXT,
+  ts    TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_events_ts    ON events(ts);
+CREATE INDEX IF NOT EXISTS idx_events_event ON events(event);
 CREATE INDEX IF NOT EXISTS idx_properties_zip    ON properties(zip);
 CREATE INDEX IF NOT EXISTS idx_properties_nbhd   ON properties(nbhd_cd);
 CREATE INDEX IF NOT EXISTS idx_properties_addr   ON properties(address);

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { getDb } from '../db/database.js';
 import { generateAppealPdf } from '../services/pdfGenerator.js';
+import { logEvent } from '../db/events.js';
 
 const router = Router();
 
@@ -73,6 +74,7 @@ router.post('/generate', async (req, res) => {
     args: [accountNumber, JSON.stringify(packetData)],
   });
 
+  logEvent(req, 'packet_generate', accountNumber);
   res.json({ id: Number(lastInsertRowid), ...packetData });
 });
 
@@ -94,6 +96,7 @@ router.get('/:id/pdf', async (req, res) => {
   const data = JSON.parse(rows[0].packet_json);
   const pdfBytes = await generateAppealPdf(data);
 
+  logEvent(req, 'pdf_download', data.property.account_number);
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `attachment; filename="appeal-${data.property.account_number}.pdf"`);
   res.send(Buffer.from(pdfBytes));

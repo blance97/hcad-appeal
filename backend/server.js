@@ -6,6 +6,7 @@ import propertiesRouter from './routes/properties.js';
 import compsRouter from './routes/comps.js';
 import appealRouter from './routes/appeal.js';
 import neighborhoodRouter from './routes/neighborhood.js';
+import statsRouter from './routes/stats.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -17,6 +18,7 @@ app.use('/api/property', propertiesRouter);
 app.use('/api/comps', compsRouter);
 app.use('/api/appeal', appealRouter);
 app.use('/api/neighborhood', neighborhoodRouter);
+app.use('/api/stats', statsRouter);
 
 app.get('/api/health', async (_, res) => {
   try {

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { getDb } from '../db/database.js';
+import { logEvent } from '../db/events.js';
 
 const router = Router();
 
@@ -32,6 +33,7 @@ router.get('/search', async (req, res) => {
     args: [...addressArgs, upper, `${upper}%`],
   });
 
+  logEvent(req, 'search', q.trim());
   res.json(rows);
 });
 
@@ -48,6 +50,7 @@ router.get('/:accountNumber', async (req, res) => {
   });
 
   if (!rows.length) return res.status(404).json({ error: 'Property not found' });
+  logEvent(req, 'property_view', req.params.accountNumber);
   res.json(rows[0]);
 });
 
