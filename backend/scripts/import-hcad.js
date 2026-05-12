@@ -110,16 +110,20 @@ async function downloadAndExtractMany(zipUrl, extractFiles) {
   });
 }
 
-async function downloadAll() {
-  console.log('\n[Step 1] Fetching download links from HCAD API...');
-  const taxYear = new Date().getFullYear();
-  let links;
+async function getDownloadLinksOrNull(taxYear) {
+  console.log(`[Step 1] Fetching download links from HCAD API for ${taxYear}...`);
   try {
-    links = await getDownloadLinks(taxYear);
+    const links = await getDownloadLinks(taxYear);
+    if (!links?.length) { console.warn('  No links returned.'); return null; }
+    console.log(`  Found ${links.length} download link(s).`);
+    return links;
   } catch (e) {
-    throw new Error(`HCAD API failed: ${e.message}\nTry --skip-download and place files manually in data/`);
+    console.warn(`  HCAD API failed: ${e.message}`);
+    return null;
   }
+}
 
+async function downloadAll(links) {
   mkdirSync(DATA_DIR, { recursive: true });
   console.log('\n[Step 2] Downloading and extracting files...');
 
@@ -265,16 +269,42 @@ async function importFixtures(db) {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
+async function checkAlreadyImported(taxYear) {
+  // Returns true if the db already has data for this tax year — skip re-import.
+  try {
+    await initDb();
+    const db = getDb();
+    const { rows } = await db.execute('SELECT MAX(tax_year) AS yr FROM properties');
+    const dbYear = Number(rows[0]?.yr);
+    if (dbYear >= taxYear) {
+      console.log(`[Pre-check] DB already contains ${dbYear} data — nothing to do. Exiting.`);
+      return true;
+    }
+    console.log(`[Pre-check] DB has ${dbYear || 'no'} data, HCAD is serving ${taxYear} — importing.\n`);
+  } catch {
+    console.log('[Pre-check] Could not read existing DB — proceeding with fresh import.\n');
+  }
+  return false;
+}
+
 async function main() {
   const skipDownload = process.argv.includes('--skip-download');
+  const taxYear = new Date().getFullYear();
 
   console.log('HCAD Data Import');
   console.log('================');
   console.log(`Data dir : ${DATA_DIR}`);
+  console.log(`Tax year : ${taxYear}`);
   console.log(`Mode     : ${skipDownload ? 'skip download (use existing files)' : 'auto-download from HCAD'}\n`);
 
   if (!skipDownload) {
-    await downloadAll();
+    // Check HCAD API has new-year data before committing to a full download+import.
+    const links = await getDownloadLinksOrNull(taxYear);
+    if (!links) throw new Error('HCAD API returned no download links — data may not be released yet.');
+
+    if (await checkAlreadyImported(taxYear)) process.exit(0);
+
+    await downloadAll(links);
   } else {
     console.log('[Step 1-2] Skipped — using existing files in data/\n');
   }
