@@ -26,7 +26,7 @@ import unzipper from 'unzipper';
 import { initDb, getDb } from '../db/database.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = join(__dirname, '../../data');
+const DATA_DIR = process.env.DATA_DIR || join(__dirname, '../../data');
 const BATCH_SIZE = 5000;
 
 const FETCH_HEADERS = {
