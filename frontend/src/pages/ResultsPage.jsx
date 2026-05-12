@@ -304,7 +304,7 @@ export default function ResultsPage() {
             </summary>
             <div className="mt-2 text-xs text-emerald-700/80 leading-relaxed space-y-1.5 pl-4">
               <p><span className="font-semibold">Value reduction ({fmt(potentialSavings)}):</span> The gap between your assessed value per sqft ({fmt(analysis.subject_value_per_sqft)}/sqft) and the neighborhood median ({fmt(analysis.median_value_per_sqft)}/sqft), multiplied by your {Number(subject.sqft).toLocaleString()} sqft. Based on {poolSize} similar homes in your HCAD neighborhood.</p>
-              <p><span className="font-semibold">Annual savings ({fmt(annualSavings)}):</span> Value reduction × 2.1% — the approximate effective property tax rate in Harris County. Your actual rate depends on your specific taxing entities (city, school district, MUD, etc.).</p>
+              <p><span className="font-semibold">Annual savings ({fmt(annualSavings)}):</span> Value reduction × 2.1%, the approximate effective property tax rate in Harris County. Your actual rate depends on your specific taxing entities (city, school district, MUD, etc.).</p>
               <p><span className="font-semibold">Note:</span> These are estimates. HCAD may not grant the full reduction. Filing is free and your value cannot increase as a result of a protest.</p>
             </div>
           </details>
@@ -407,7 +407,7 @@ export default function ResultsPage() {
                 <span className="w-5 h-5 rounded bg-amber-100 text-amber-700 font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
                 <div>
                   <span className="font-semibold text-zinc-700">Same-street first (up to 5).</span>{' '}
-                  Properties on your exact street with similar size (within 20%) and year built (within 10 years). These are the strongest evidence at an ARB hearing — HCAD can't easily justify a $50K gap between homes on the same block with identical floor plans.
+                  Properties on your exact street with similar size (within 20%) and year built (within 10 years). These are the strongest evidence at an ARB hearing. HCAD can't easily justify a $50K gap between homes on the same block with identical floor plans.
                 </div>
               </div>
               <div className="flex gap-2.5">
@@ -421,7 +421,7 @@ export default function ResultsPage() {
                 <span className="w-5 h-5 rounded bg-zinc-100 text-zinc-600 font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
                 <div>
                   <span className="font-semibold text-zinc-700">Analysis uses the full pool ({poolSize} homes), not just the 10 shown.</span>{' '}
-                  The overassessment % and savings estimate are calculated from all eligible homes in your neighborhood — not cherry-picked. $/sqft is used instead of raw value to normalize for size differences.
+                  The overassessment % and savings estimate are calculated from all eligible homes in your neighborhood, not cherry-picked. $/sqft is used instead of raw value to normalize for size differences.
                 </div>
               </div>
             </div>
