@@ -3,6 +3,15 @@ import { getDb } from '../db/database.js';
 
 const router = Router();
 
+// If STATS_TOKEN is set, require Authorization: Bearer <token>
+router.use((req, res, next) => {
+  const token = process.env.STATS_TOKEN;
+  if (!token) return next();
+  const auth = req.headers.authorization || '';
+  if (auth === `Bearer ${token}`) return next();
+  res.status(401).json({ error: 'Unauthorized' });
+});
+
 router.get('/', async (req, res) => {
   const db = getDb();
 
