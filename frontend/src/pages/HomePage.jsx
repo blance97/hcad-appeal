@@ -7,13 +7,17 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [taxYear, setTaxYear] = useState(null);
+  const [propertyCount, setPropertyCount] = useState(null);
   const navigate = useNavigate();
   const debounce = useRef(null);
 
   React.useEffect(() => {
     fetch('/api/health')
       .then(r => r.json())
-      .then(d => { if (d.tax_year) setTaxYear(d.tax_year); })
+      .then(d => {
+        if (d.tax_year) setTaxYear(d.tax_year);
+        if (d.property_count) setPropertyCount(d.property_count);
+      })
       .catch(() => {});
   }, []);
 
@@ -103,8 +107,8 @@ export default function HomePage() {
       {/* Stats */}
       <div className="mt-8 grid grid-cols-3 gap-3">
         {[
-          { n: '1.2M+', label: 'HCAD records' },
-          { n: '85%+', label: 'protest success rate' },
+          { n: propertyCount ? `${(propertyCount / 1_000_000).toFixed(1)}M` : '—', label: 'HCAD records' },
+          { n: 'May 15', label: `${taxYear || '—'} protest deadline` },
           { n: 'Free', label: 'no signup required' },
         ].map(({ n, label }) => (
           <div key={label} className="bg-white border border-zinc-200 rounded-xl p-4 shadow-card text-center">

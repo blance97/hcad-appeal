@@ -23,10 +23,16 @@ app.use('/api/stats', statsRouter);
 app.get('/api/health', async (_, res) => {
   try {
     const { getDb } = await import('./db/database.js');
-    const { rows } = await getDb().execute('SELECT MAX(tax_year) AS tax_year FROM properties');
-    res.json({ status: 'ok', tax_year: Number(rows[0]?.tax_year) || null });
+    const { rows } = await getDb().execute(
+      'SELECT MAX(tax_year) AS tax_year, COUNT(*) AS property_count FROM properties'
+    );
+    res.json({
+      status: 'ok',
+      tax_year: Number(rows[0]?.tax_year) || null,
+      property_count: Number(rows[0]?.property_count) || null,
+    });
   } catch {
-    res.json({ status: 'ok', tax_year: null });
+    res.json({ status: 'ok', tax_year: null, property_count: null });
   }
 });
 
