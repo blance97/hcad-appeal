@@ -69,6 +69,7 @@ jobs:
           git pull --rebase
           sed -i "s|^\(  tag:\).*|\1 \"${SHA}\"|" k8s-infra/apps/hcad-appeal/values.yaml
           sed -i "s|^\(  tag:\).*|\1 \"${SHA}\"|" k8s-infra/apps/fbcad-appeal/values.yaml
-          git add k8s-infra/apps/hcad-appeal/values.yaml k8s-infra/apps/fbcad-appeal/values.yaml
-          git commit -m "chore: deploy hcad-appeal+fbcad-appeal@${GITHUB_SHA::7}" || echo "No changes"
+          sed -i "s|^\(  tag:\).*|\1 \"${SHA}\"|" k8s-infra/apps/tcad-appeal/values.yaml
+          git add k8s-infra/apps/hcad-appeal/values.yaml k8s-infra/apps/fbcad-appeal/values.yaml k8s-infra/apps/tcad-appeal/values.yaml
+          git commit -m "chore: deploy hcad+fbcad+tcad-appeal@${GITHUB_SHA::7}" || echo "No changes"
           git push
