@@ -131,5 +131,53 @@ export async function generateAppealPdf(data) {
   text(page, 'Your $/Sqft', cols[0], y, { font: helveticaBold, size: 8, color: RED });
   text(page, fmt(analysis.subject_value_per_sqft), cols[6], y, { font: helveticaBold, size: 8, color: RED });
 
+  // --- Page 4: Filing Instructions + Checklist ---
+  ({ page, y } = addPage());
+  y = text(page, 'FILING INSTRUCTIONS', 50, y, { font: helveticaBold, size: 14, color: RED });
+  y -= 8; line(page, y); y -= 16;
+
+  const filingUrl = county.filing_url || 'owners.hcad.org';
+  const cadName = county.cad_name || 'HCAD';
+
+  const instructions = [
+    `1. File your protest online at ${filingUrl} before ${deadline}.`,
+    '2. Select protest reason: "Value is over market value" and/or',
+    '   "Value is unequal compared to other properties."',
+    '3. Upload this packet as evidence at your informal or formal hearing.',
+    '4. At the informal hearing, present the comp table.',
+    '   Most reductions happen here without needing a formal ARB hearing.',
+    `5. If unsatisfied, request a formal ARB hearing before the`,
+    '   deadline shown on your appraisal notice.',
+  ];
+
+  for (const l of instructions) {
+    y = text(page, l, 50, y, { size: 10 });
+    y -= 2;
+  }
+
+  y -= 20;
+  y = text(page, 'DEADLINE CHECKLIST', 50, y, { font: helveticaBold, size: 14, color: RED });
+  y -= 8; line(page, y); y -= 16;
+
+  const checklist = [
+    `[ ]  File protest at ${filingUrl} by ${deadline}`,
+    '[ ]  Print or save this packet as your evidence',
+    `[ ]  Note your hearing date from ${cadName} confirmation email`,
+    '[ ]  Gather photos of property defects or repair estimates (if any)',
+    '[ ]  Attend informal hearing — bring printed comps table',
+    '[ ]  Review written decision from ARB',
+  ];
+
+  for (const l of checklist) {
+    y = text(page, l, 50, y, { size: 10 });
+    y -= 4;
+  }
+
+  y -= 24;
+  line(page, y); y -= 12;
+  text(page, 'This document is for informational purposes only and does not constitute legal or tax advice.', 50, y, { size: 8, color: GRAY });
+  y -= 12;
+  text(page, `Data sourced from ${cadName} public records. Results are estimates only.`, 50, y, { size: 8, color: GRAY });
+
   return doc.save();
 }
