@@ -33,8 +33,8 @@
  */
 
 import Database from 'better-sqlite3';
-import { readFileSync, existsSync, mkdirSync, createWriteStream } from 'fs';
-import { PassThrough } from 'stream';
+import { readFileSync, existsSync, mkdirSync } from 'fs';
+import { Readable, Transform } from 'stream';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import unzipper from 'unzipper';
@@ -82,14 +82,12 @@ async function downloadZip(url, label) {
   const total = parseInt(res.headers.get('content-length') || '0');
   let downloaded = 0, lastPct = -1;
 
-  const pass = new PassThrough();
-
-  const reader = res.body.getReader();
-  (async () => {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) { pass.end(); break; }
-      downloaded += value.length;
+  // Convert WHATWG ReadableStream → Node.js Readable so backpressure is respected.
+  // The old PassThrough approach wrote chunks without awaiting drain, corrupting
+  // the ZIP stream for large files (527 MB+).
+  const progress = new Transform({
+    transform(chunk, _enc, cb) {
+      downloaded += chunk.length;
       if (total) {
         const pct = Math.floor((downloaded / total) * 100);
         if (pct !== lastPct && pct % 5 === 0) {
@@ -97,12 +95,12 @@ async function downloadZip(url, label) {
           lastPct = pct;
         }
       }
-      pass.write(value);
-    }
-    process.stdout.write('\n');
-  })();
+      cb(null, chunk);
+    },
+    flush(cb) { process.stdout.write('\n'); cb(); },
+  });
 
-  return pass;
+  return Readable.fromWeb(res.body).pipe(progress);
 }
 
 // Stream lines from a readable stream, calling onLine for each non-empty line
@@ -256,7 +254,11 @@ async function importProperties(db, zipStream, improvementMap) {
     if (name !== 'prop.txt') { entry.autodrain(); return; }
     console.log('  Found PROP.TXT — streaming...');
 
+    let total = 0;
     await streamLines(entry, (line) => {
+      total++;
+      if (total % 100_000 === 0) process.stdout.write(`\r  ${total.toLocaleString()} lines scanned, ${imported.toLocaleString()} imported...`);
+
       if (line.length < 1930) { skipped++; return; }
 
       // Only Real property
