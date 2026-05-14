@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Routes, Route, Link, useParams, Outlet } from 'react-router-dom';
+import { Routes, Route, Link, Navigate, useParams, Outlet } from 'react-router-dom';
 import HomePage from './pages/HomePage.jsx';
 import ResultsPage from './pages/ResultsPage.jsx';
 import PacketPage from './pages/PacketPage.jsx';
@@ -66,6 +66,7 @@ export default function App() {
         <Route path="packet/:packetId" element={<PacketPage />} />
         <Route path="stats" element={<StatsPage />} />
       </Route>
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
