@@ -9,7 +9,7 @@ const COUNTY = {
   county_name:   process.env.COUNTY_NAME   || 'Harris County',
   cad_name:      process.env.CAD_NAME      || 'HCAD',
   cad_full_name: process.env.CAD_FULL_NAME || 'Harris County Appraisal District',
-  filing_url:    process.env.FILING_URL    || 'iFile.hcad.org',
+  filing_url:    process.env.FILING_URL    || 'owners.hcad.org',
   tax_rate:      parseFloat(process.env.TAX_RATE) || 0.021,
   arb_address:   process.env.ARB_ADDRESS   || 'P.O. Box 922012, Houston, TX 77292-2012',
 };

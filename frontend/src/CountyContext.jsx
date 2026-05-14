@@ -4,7 +4,7 @@ const DEFAULTS = {
   county_name:   'Harris County',
   cad_name:      'HCAD',
   cad_full_name: 'Harris County Appraisal District',
-  filing_url:    'iFile.hcad.org',
+  filing_url:    'owners.hcad.org',
   tax_rate:      0.021,
   state:         'Texas',
   tax_year:      null,
