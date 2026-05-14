@@ -14,22 +14,23 @@
  *
  * Update TCAD_IMPRV_URL and TCAD_PROP_URL env vars each April.
  *
- * PROP.TXT fixed-width positions (1-indexed, verified empirically against 2026 data):
- *   [1-12]    prop_id           zero-padded internal ID
- *   [13-17]   prop_type_cd      R=Real property
- *   [597-608] geo_id            account number (user-facing)
- *   [609-678] owner_name
- *   [1050-1099] situs_pfx       street name prefix / name
- *   [1100-1109] situs_st        street suffix (ST, BLVD, etc.)
- *   [1110-1139] situs_sfx       unit/secondary, usually empty
- *   [1140-1149] situs_city_zip  city name OR 5-digit zip (varies by property)
- *   [1696-1745] hood_cd         neighborhood code
+ * PROP.TXT fixed-width positions (1-indexed, from TP_Legacy8.0.32-AppraisalExportLayout.xlsx):
+ *   [1-12]      prop_id              zero-padded internal ID
+ *   [13-17]     prop_type_cd         R=Real property
+ *   [597-608]   geo_id               account number (user-facing)
+ *   [609-678]   owner_name
+ *   [1040-1049] situs_street_prefx   street direction prefix (N, S, etc.)
+ *   [1050-1099] situs_street         street name
+ *   [1100-1109] situs_street_suffix  street type (ST, BLVD, CV, etc.)
+ *   [1110-1139] situs_city           city name (30 chars)
+ *   [1140-1149] situs_zip            zip code (10 chars)
+ *   [1696-1745] hood_cd              neighborhood code
  *   [1796-1810] land_hstd_val
  *   [1811-1825] land_non_hstd_val
  *   [1826-1840] imprv_hstd_val
  *   [1841-1855] imprv_non_hstd_val
- *   [1916-1930] appraised_val   total appraised value
- *   [4475-4479] situs_num       house/unit number
+ *   [1916-1930] appraised_val        total appraised value
+ *   [4460-4474] situs_num            house number (15 chars) — NOT [4475-4479] which is situs_unit
  */
 
 import Database from 'better-sqlite3';
@@ -268,19 +269,16 @@ async function importProperties(db, zipPath, improvementMap) {
       const totalVal  = parseInt(fw(line, 1916, 1930)) || 0;
       if (totalVal < 10000) { skipped++; return; }
 
-      // Address: house number + street name + suffix
-      const situsNum = fw(line, 4475, 4479);
-      const situs_pfx = fw(line, 1050, 1099);
-      const situs_st  = fw(line, 1100, 1109);
-      const situs_sfx = fw(line, 1110, 1139);
-      const address = [situsNum, situs_pfx, situs_st, situs_sfx].filter(Boolean).join(' ').toUpperCase();
+      // Address fields (from layout doc TP_Legacy8.0.32-AppraisalExportLayout.xlsx)
+      const situsNum   = fw(line, 4460, 4474); // situs_num: house number (15 chars)
+      const situs_prefx = fw(line, 1040, 1049); // situs_street_prefx: N/S/E/W
+      const situs_st   = fw(line, 1050, 1099); // situs_street: street name
+      const situs_sfx  = fw(line, 1100, 1109); // situs_street_suffix: ST/BLVD/CV
+      const address = [situsNum, situs_prefx, situs_st, situs_sfx].filter(Boolean).join(' ').toUpperCase();
       if (!address) { skipped++; return; }
 
-      // situs_city field holds either a city name or a zip code
-      const situsCity = fw(line, 1140, 1149);
-      const isZip = /^\d{5}/.test(situsCity);
-      const city = isZip ? 'Austin' : (situsCity || 'Austin');
-      const zip  = isZip ? situsCity.slice(0, 5) : '';
+      const city = fw(line, 1110, 1139) || 'Austin'; // situs_city (30 chars)
+      const zip  = fw(line, 1140, 1149).slice(0, 5); // situs_zip (10 chars)
 
       const hood = fw(line, 1696, 1745);
       const owner = fw(line, 609, 678);
