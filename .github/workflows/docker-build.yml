@@ -67,9 +67,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git pull --rebase
-          sed -i "s|^\(  tag:\).*|\1 \"${SHA}\"|" k8s-infra/apps/hcad-appeal/values.yaml
-          sed -i "s|^\(  tag:\).*|\1 \"${SHA}\"|" k8s-infra/apps/fbcad-appeal/values.yaml
-          sed -i "s|^\(  tag:\).*|\1 \"${SHA}\"|" k8s-infra/apps/tcad-appeal/values.yaml
-          git add k8s-infra/apps/hcad-appeal/values.yaml k8s-infra/apps/fbcad-appeal/values.yaml k8s-infra/apps/tcad-appeal/values.yaml
-          git commit -m "chore: deploy hcad+fbcad+tcad-appeal@${GITHUB_SHA::7}" || echo "No changes"
+          sed -i "s|^\(  tag:\).*|\1 \"${SHA}\"|" k8s-infra/apps/tax-appeal/values.yaml
+          git add k8s-infra/apps/tax-appeal/values.yaml
+          git commit -m "chore: deploy tax-appeal@${GITHUB_SHA::7}" || echo "No changes"
           git push
