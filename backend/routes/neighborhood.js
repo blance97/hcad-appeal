@@ -1,11 +1,10 @@
 import { Router } from 'express';
-import { getDb } from '../db/database.js';
 
 const router = Router();
 
 // Accepts either a neighborhood code (e.g. "8307.09") or a zip code as fallback
 router.get('/:code', async (req, res) => {
-  const db = getDb();
+  const db = req.db;
   const { code } = req.params;
 
   // Determine if this looks like a neighborhood code (contains a dot) or a zip

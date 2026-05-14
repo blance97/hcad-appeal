@@ -1,24 +1,15 @@
 import { Router } from 'express';
-import { getDb } from '../db/database.js';
 import { generateAppealPdf } from '../services/pdfGenerator.js';
 import { logEvent } from '../db/events.js';
 
 const router = Router();
 
-const COUNTY = {
-  county_name:   process.env.COUNTY_NAME   || 'Harris County',
-  cad_name:      process.env.CAD_NAME      || 'HCAD',
-  cad_full_name: process.env.CAD_FULL_NAME || 'Harris County Appraisal District',
-  filing_url:    process.env.FILING_URL    || 'owners.hcad.org',
-  tax_rate:      parseFloat(process.env.TAX_RATE) || 0.021,
-  arb_address:   process.env.ARB_ADDRESS   || 'P.O. Box 922012, Houston, TX 77292-2012',
-};
-
 router.post('/generate', async (req, res) => {
   const { accountNumber } = req.body;
   if (!accountNumber) return res.status(400).json({ error: 'accountNumber required' });
 
-  const db = getDb();
+  const db = req.db;
+  const COUNTY = req.countyConfig;
 
   const { rows: propRows } = await db.execute({
     sql: `SELECT p.*, b.sqft, b.year_built, b.beds, b.baths, o.owner_name
@@ -132,7 +123,7 @@ router.post('/generate', async (req, res) => {
 });
 
 router.get('/:id/html', async (req, res) => {
-  const db = getDb();
+  const db = req.db;
   const { rows } = await db.execute({ sql: 'SELECT * FROM appeal_packets WHERE id = ?', args: [req.params.id] });
   if (!rows.length) return res.status(404).json({ error: 'Packet not found' });
 
@@ -142,7 +133,7 @@ router.get('/:id/html', async (req, res) => {
 });
 
 router.get('/:id/pdf', async (req, res) => {
-  const db = getDb();
+  const db = req.db;
   const { rows } = await db.execute({ sql: 'SELECT * FROM appeal_packets WHERE id = ?', args: [req.params.id] });
   if (!rows.length) return res.status(404).json({ error: 'Packet not found' });
 

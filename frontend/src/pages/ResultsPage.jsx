@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCounty } from '../CountyContext.jsx';
+import { useApi } from '../api.js';
 
 const fmt = n =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
@@ -17,6 +18,7 @@ function StatBox({ label, value, valueClass = '' }) {
 }
 
 function AddressSearchBar({ onSelect }) {
+  const api = useApi();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -26,9 +28,8 @@ function AddressSearchBar({ onSelect }) {
     if (q.trim().length < 3) { setResults([]); return; }
     setLoading(true);
     try {
-      const res = await fetch(`/api/property/search?q=${encodeURIComponent(q)}`);
-      const data = await res.json();
-      if (res.ok) setResults(data);
+      const data = await api.search(q);
+      if (!data.error) setResults(data);
     } finally {
       setLoading(false);
     }
@@ -104,7 +105,8 @@ function Skeleton() {
 export default function ResultsPage() {
   const { accountNumber } = useParams();
   const navigate = useNavigate();
-  const { county_name, cad_name, tax_rate } = useCounty();
+  const { county_name, cad_name, tax_rate, countyId } = useCounty();
+  const api = useApi();
 
   const [data, setData] = useState(null);
   const [property, setProperty] = useState(null);
@@ -122,22 +124,20 @@ export default function ResultsPage() {
 
     async function load() {
       try {
-        const [compsRes, propRes] = await Promise.all([
-          fetch(`/api/comps/${accountNumber}`),
-          fetch(`/api/property/${accountNumber}`),
+        const [compsJson, propJson] = await Promise.all([
+          api.comps(accountNumber),
+          api.property(accountNumber),
         ]);
 
-        const compsJson = await compsRes.json();
-        if (!compsRes.ok) throw new Error(compsJson.error);
+        if (compsJson.error) throw new Error(compsJson.error);
 
-        const propJson = propRes.ok ? await propRes.json() : null;
         setData(compsJson);
-        setProperty(propJson);
+        setProperty(propJson.error ? null : propJson);
 
         const nbhdKey = compsJson.subject?.nbhd_cd || compsJson.subject?.zip;
         if (nbhdKey) {
-          const nbRes = await fetch(`/api/neighborhood/${encodeURIComponent(nbhdKey)}`);
-          if (nbRes.ok) setNeighborhood(await nbRes.json());
+          const nbJson = await api.neighborhood(encodeURIComponent(nbhdKey));
+          if (!nbJson.error) setNeighborhood(nbJson);
         }
       } catch (e) {
         setError(e.message || 'Failed to load property data');
@@ -152,14 +152,9 @@ export default function ResultsPage() {
   async function generatePacket() {
     setGenerating(true);
     try {
-      const res = await fetch('/api/appeal/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accountNumber }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error);
-      navigate(`/packet/${json.id}`);
+      const json = await api.generateAppeal(accountNumber);
+      if (json.error) throw new Error(json.error);
+      navigate(`/${countyId}/packet/${json.id}`);
     } catch (e) {
       setError(e.message || 'Failed to generate packet');
       setGenerating(false);
@@ -171,7 +166,7 @@ export default function ResultsPage() {
   if (error) {
     return (
       <div className="max-w-3xl mx-auto">
-        <AddressSearchBar onSelect={acct => navigate(`/results/${acct}`)} />
+        <AddressSearchBar onSelect={acct => navigate(`/${countyId}/results/${acct}`)} />
         <div className="bg-white rounded-2xl border border-zinc-200 shadow-card p-10 text-center">
           <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
             <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -179,7 +174,7 @@ export default function ResultsPage() {
             </svg>
           </div>
           <p className="text-zinc-700 font-semibold mb-1">{error}</p>
-          <button onClick={() => navigate('/')} className="mt-3 text-sm text-brand hover:underline">
+          <button onClick={() => navigate(`/${countyId}`)} className="mt-3 text-sm text-brand hover:underline">
             Back to search
           </button>
         </div>

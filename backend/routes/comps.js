@@ -1,10 +1,9 @@
 import { Router } from 'express';
-import { getDb } from '../db/database.js';
 
 const router = Router();
 
 router.get('/:accountNumber', async (req, res) => {
-  const db = getDb();
+  const db = req.db;
   const acct = req.params.accountNumber;
 
   const { rows: subjectRows } = await db.execute({

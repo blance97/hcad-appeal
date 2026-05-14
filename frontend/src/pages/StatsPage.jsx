@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useCounty } from '../CountyContext.jsx';
 
 const fmt = n => new Intl.NumberFormat('en-US').format(n);
 const fmtCurrency = n =>
@@ -27,6 +28,7 @@ function StatCard({ label, today, week, total }) {
 }
 
 export default function StatsPage() {
+  const { countyId } = useCounty();
   const [token, setToken] = useState(() => localStorage.getItem('stats_token') || '');
   const [input, setInput] = useState('');
   const [data, setData] = useState(null);
@@ -37,7 +39,7 @@ export default function StatsPage() {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/stats', {
+      const res = await fetch(`/api/${countyId}/stats`, {
         headers: { Authorization: `Bearer ${t}` },
       });
       if (res.status === 401) {
@@ -56,8 +58,8 @@ export default function StatsPage() {
   }, []);
 
   useEffect(() => {
-    if (token) fetchStats(token);
-  }, [token, fetchStats]);
+    if (token && countyId) fetchStats(token);
+  }, [token, countyId, fetchStats]);
 
   function handleSubmit(e) {
     e.preventDefault();

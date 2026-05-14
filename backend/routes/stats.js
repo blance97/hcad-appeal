@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { getDb } from '../db/database.js';
 
 const router = Router();
 
@@ -13,7 +12,7 @@ router.use((req, res, next) => {
 });
 
 router.get('/', async (req, res) => {
-  const db = getDb();
+  const db = req.db;
 
   const [searches, views, packets, pdfs, uniqueIps, topProperties, topSearches, daily] =
     await Promise.all([

@@ -1,11 +1,13 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCounty } from '../CountyContext.jsx';
+import { useApi } from '../api.js';
 
 export default function PacketPage() {
   const { packetId } = useParams();
   const navigate = useNavigate();
   const { county_name, cad_name, filing_url } = useCounty();
+  const api = useApi();
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -22,7 +24,7 @@ export default function PacketPage() {
 
         <div className="grid grid-cols-2 gap-4">
           <a
-            href={`/api/appeal/${packetId}/pdf`}
+            href={api.appealPdfUrl(packetId)}
             target="_blank"
             rel="noreferrer"
             className="flex items-center justify-center gap-2 bg-brand text-white font-bold py-3 rounded-lg hover:bg-brand-dark transition-colors text-center"
@@ -30,7 +32,7 @@ export default function PacketPage() {
             Download PDF
           </a>
           <a
-            href={`/api/appeal/${packetId}/html`}
+            href={api.appealHtmlUrl(packetId)}
             target="_blank"
             rel="noreferrer"
             className="flex items-center justify-center gap-2 border-2 border-brand text-brand font-bold py-3 rounded-lg hover:bg-brand-light transition-colors text-center"

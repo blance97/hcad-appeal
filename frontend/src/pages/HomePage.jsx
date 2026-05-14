@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCounty } from '../CountyContext.jsx';
+import { useApi } from '../api.js';
 
 function makeFaqs(cadName, countyName, filingUrl) {
   return [
@@ -54,7 +55,8 @@ function FaqItem({ q, a }) {
 }
 
 export default function HomePage() {
-  const { county_name, cad_name, filing_url, state, tax_year: taxYear, property_count: propertyCount } = useCounty();
+  const { county_name, cad_name, filing_url, state, tax_year: taxYear, property_count: propertyCount, countyId } = useCounty();
+  const api = useApi();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -67,9 +69,8 @@ export default function HomePage() {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`/api/property/search?q=${encodeURIComponent(q)}`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      const data = await api.search(q);
+      if (data.error) throw new Error(data.error);
       setResults(data);
     } catch (e) {
       setError(e.message || 'Search failed');
@@ -129,7 +130,7 @@ export default function HomePage() {
             {results.map(p => (
               <li key={p.account_number}>
                 <button
-                  onClick={() => navigate(`/results/${p.account_number}`)}
+                  onClick={() => navigate(`/${countyId}/results/${p.account_number}`)}
                   className="w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors"
                 >
                   <div className="font-semibold text-zinc-900 text-sm">{p.address}, {p.city} {p.zip}</div>

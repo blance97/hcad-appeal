@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { getDb } from '../db/database.js';
 import { logEvent } from '../db/events.js';
 
 const router = Router();
@@ -10,7 +9,7 @@ router.get('/search', async (req, res) => {
     return res.status(400).json({ error: 'Query must be at least 3 characters' });
   }
 
-  const db = getDb();
+  const db = req.db;
   const upper = q.trim().toUpperCase();
   const tokens = upper.split(/\s+/).filter(Boolean);
 
@@ -38,7 +37,7 @@ router.get('/search', async (req, res) => {
 });
 
 router.get('/:accountNumber', async (req, res) => {
-  const db = getDb();
+  const db = req.db;
   const { rows } = await db.execute({
     sql: `SELECT p.*, b.sqft, b.year_built, b.beds, b.baths, b.stories, b.condition, b.quality,
                  o.owner_name, o.mailing_address
