@@ -33,8 +33,9 @@
  */
 
 import Database from 'better-sqlite3';
-import { readFileSync, existsSync, mkdirSync } from 'fs';
+import { readFileSync, existsSync, mkdirSync, createWriteStream, unlinkSync } from 'fs';
 import { Readable, Transform } from 'stream';
+import { pipeline } from 'stream/promises';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import unzipper from 'unzipper';
@@ -74,7 +75,10 @@ function openDb(dbPath) {
 
 // ─── Download helpers ─────────────────────────────────────────────────────────
 
-async function downloadZip(url, label) {
+// Download a URL to a local file. Using disk avoids unzipper.Parse() stream
+// corruption issues on large ZIPs (527 MB+). unzipper.Open.file() then reads
+// the central directory first, which is far more reliable than stream-parsing.
+async function downloadToFile(url, destPath, label) {
   console.log(`  Downloading ${label}...`);
   const res = await fetch(url, { headers: FETCH_HEADERS });
   if (!res.ok) throw new Error(`HTTP ${res.status} from ${url}`);
@@ -82,9 +86,6 @@ async function downloadZip(url, label) {
   const total = parseInt(res.headers.get('content-length') || '0');
   let downloaded = 0, lastPct = -1;
 
-  // Convert WHATWG ReadableStream → Node.js Readable so backpressure is respected.
-  // The old PassThrough approach wrote chunks without awaiting drain, corrupting
-  // the ZIP stream for large files (527 MB+).
   const progress = new Transform({
     transform(chunk, _enc, cb) {
       downloaded += chunk.length;
@@ -100,7 +101,8 @@ async function downloadZip(url, label) {
     flush(cb) { process.stdout.write('\n'); cb(); },
   });
 
-  return Readable.fromWeb(res.body).pipe(progress);
+  await pipeline(Readable.fromWeb(res.body), progress, createWriteStream(destPath));
+  console.log(`  Saved to ${destPath}`);
 }
 
 // Stream lines from a readable stream, calling onLine for each non-empty line
@@ -125,18 +127,6 @@ async function streamLines(stream, onLine) {
   });
 }
 
-// Process all entries in a ZIP stream, calling handler for each matching file
-async function processZip(zipStream, handler) {
-  return new Promise((resolve, reject) => {
-    const parser = zipStream.pipe(unzipper.Parse());
-    parser.on('entry', entry => {
-      const name = entry.path.toLowerCase();
-      handler(name, entry).catch(reject);
-    });
-    parser.on('finish', resolve);
-    parser.on('error', reject);
-  });
-}
 
 // ─── CSV parser (handles quoted fields) ───────────────────────────────────────
 
@@ -169,33 +159,29 @@ function fw(line, start, end) {
 // Step 1: Parse improvement_detail CSVs → build map of propId → {yr_built, sqft}
 // Columns: pYear,pID,pImprovementID,pDetailID,imprvType,stateCd,imprvDescription,
 //          imprvDetailType,imprvDetailTypeDesc,detailClass,...,area,...,actualYearBuilt,...
-async function buildImprovementMap(zipStream) {
+async function buildImprovementMap(zipPath) {
   console.log('\n[Step 3] Parsing improvement_detail CSVs (residential index)...');
 
-  // Type codes that count toward living area sqft
   const LIVING_TYPES = new Set(['1ST', '2ND', '3RD', '4TH', '5TH', 'BAS', 'FIN', 'ATT']);
-
   const map = new Map(); // propId (number) → {yr_built, sqft}
-  let headerMap = null;
   let totalRows = 0;
 
-  await processZip(zipStream, async (name, entry) => {
-    if (!name.endsWith('.csv')) { entry.autodrain(); return; }
-    console.log(`  Scanning ${name}...`);
-    headerMap = null; // reset header for each CSV part
+  const dir = await unzipper.Open.file(zipPath);
+  for (const entry of dir.files) {
+    if (!entry.path.toLowerCase().endsWith('.csv')) continue;
+    console.log(`  Scanning ${entry.path}...`);
+    let headerMap = null;
 
-    await streamLines(entry, (line) => {
+    await streamLines(entry.stream(), (line) => {
       const fields = parseCsv(line);
-
       if (!headerMap) {
-        // First line is header
         headerMap = {};
         fields.forEach((h, i) => { headerMap[h.trim()] = i; });
         return;
       }
 
       const stateCd = fields[headerMap['stateCd']]?.trim() || '';
-      if (!stateCd.startsWith('A')) return; // skip non-residential
+      if (!stateCd.startsWith('A')) return;
 
       const typeCode = fields[headerMap['imprvDetailType']]?.trim() || '';
       if (!LIVING_TYPES.has(typeCode)) return;
@@ -218,15 +204,15 @@ async function buildImprovementMap(zipStream) {
       totalRows++;
       if (totalRows % 200_000 === 0) process.stdout.write(`\r  ${totalRows.toLocaleString()} rows processed...`);
     });
-  });
+  }
 
   process.stdout.write('\n');
   console.log(`  Done — ${map.size.toLocaleString()} residential properties indexed from ${totalRows.toLocaleString()} living-area rows.`);
   return map;
 }
 
-// Step 2: Stream PROP.TXT from the full export ZIP, import matching properties
-async function importProperties(db, zipStream, improvementMap) {
+// Step 2: Extract PROP.TXT from the full export ZIP, import matching properties
+async function importProperties(db, zipPath, improvementMap) {
   console.log('\n[Step 4] Parsing PROP.TXT (addresses, values, owners)...');
 
   const insertProp = db.prepare(`INSERT OR REPLACE INTO properties
@@ -250,14 +236,15 @@ async function importProperties(db, zipStream, improvementMap) {
   const propBatch = [], bldgBatch = [], ownerBatch = [];
   let imported = 0, skipped = 0;
 
-  await processZip(zipStream, async (name, entry) => {
-    if (name !== 'prop.txt') { entry.autodrain(); return; }
-    console.log('  Found PROP.TXT — streaming...');
+  const dir = await unzipper.Open.file(zipPath);
+  const propEntry = dir.files.find(f => f.path.toLowerCase() === 'prop.txt');
+  if (!propEntry) throw new Error('PROP.TXT not found in export ZIP');
+  console.log('  Found PROP.TXT — streaming...');
 
-    let total = 0;
-    await streamLines(entry, (line) => {
-      total++;
-      if (total % 100_000 === 0) process.stdout.write(`\r  ${total.toLocaleString()} lines scanned, ${imported.toLocaleString()} imported...`);
+  let total = 0;
+  await streamLines(propEntry.stream(), (line) => {
+    total++;
+    if (total % 100_000 === 0) process.stdout.write(`\r  ${total.toLocaleString()} lines scanned, ${imported.toLocaleString()} imported...`);
 
       if (line.length < 1930) { skipped++; return; }
 
@@ -312,7 +299,7 @@ async function importProperties(db, zipStream, improvementMap) {
         propBatch.length = bldgBatch.length = ownerBatch.length = 0;
       }
     });
-  });
+  process.stdout.write('\n');
 
   if (propBatch.length) runBatch(propBatch, bldgBatch, ownerBatch);
   console.log(`  Done — ${imported.toLocaleString()} residential imported, ${skipped.toLocaleString()} skipped.`);
@@ -361,33 +348,24 @@ async function main() {
   const db = openDb(DB_PATH);
   const start = Date.now();
 
+  const imprvPath = join(DATA_DIR, 'improvement_detail_2026.zip');
+  const propPath  = join(DATA_DIR, 'prop_export.zip');
+
   if (!skipDownload) {
-    // Pass 1: improvement_detail CSVs (69 MB) → residential property map
+    // Download both ZIPs to disk first — unzipper.Open.file() is far more
+    // reliable than stream-parsing for large ZIPs (avoids invalid signature errors)
     console.log('[Step 1] Downloading improvement_detail_2026.zip (69 MB)...');
-    const imprvStream = await downloadZip(TCAD_IMPRV_URL, 'improvement_detail_2026.zip');
-    const improvementMap = await buildImprovementMap(imprvStream);
+    await downloadToFile(TCAD_IMPRV_URL, imprvPath, 'improvement_detail_2026.zip');
 
-    // Pass 2: full export (553 MB) → PROP.TXT for address/value/owner data
-    console.log('\n[Step 2] Downloading full appraisal export (553 MB) for PROP.TXT...');
-    const propStream = await downloadZip(TCAD_PROP_URL, 'full appraisal export');
-    await importProperties(db, propStream, improvementMap);
-
+    console.log('\n[Step 2] Downloading full appraisal export (553 MB)...');
+    await downloadToFile(TCAD_PROP_URL, propPath, 'full appraisal export');
   } else {
-    // --skip-download: read pre-extracted files from DATA_DIR
-    const { createReadStream } = await import('fs');
-
-    const imprvPath = join(DATA_DIR, 'improvement_detail_2026.zip');
-    const propPath  = join(DATA_DIR, 'prop_export.zip');
-
     if (!existsSync(imprvPath)) throw new Error(`Missing: ${imprvPath}`);
     if (!existsSync(propPath))  throw new Error(`Missing: ${propPath}`);
-
-    console.log('[Step 1] Reading improvement_detail_2026.zip from disk...');
-    const improvementMap = await buildImprovementMap(createReadStream(imprvPath));
-
-    console.log('\n[Step 2] Reading PROP.TXT from local export ZIP...');
-    await importProperties(db, createReadStream(propPath), improvementMap);
   }
+
+  const improvementMap = await buildImprovementMap(imprvPath);
+  await importProperties(db, propPath, improvementMap);
 
   const propCount = db.prepare('SELECT COUNT(*) AS n FROM properties').get().n;
   const bldCount  = db.prepare('SELECT COUNT(*) AS n FROM buildings').get().n;
@@ -402,6 +380,13 @@ async function main() {
   verify.close();
 
   if (verifyCount === 0) throw new Error('Backup verification failed — properties table is empty');
+
+  // Clean up downloaded ZIPs — they're ~600 MB and no longer needed
+  if (!skipDownload) {
+    for (const p of [imprvPath, propPath]) {
+      try { unlinkSync(p); } catch {}
+    }
+  }
 
   console.log('\n✓ Import complete');
   console.log(`  Properties    : ${Number(propCount).toLocaleString()}`);
