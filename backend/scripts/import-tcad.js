@@ -213,7 +213,7 @@ async function buildImprovementMap(zipPath) {
 }
 
 // Step 2: Extract PROP.TXT from the full export ZIP, import matching properties
-async function importProperties(db, zipPath, improvementMap) {
+async function importProperties(db, zipPath, improvementMap, priorValues) {
   console.log('\n[Step 4] Parsing PROP.TXT (addresses, values, owners)...');
 
   const insertProp = db.prepare(`INSERT OR REPLACE INTO properties
@@ -285,7 +285,8 @@ async function importProperties(db, zipPath, improvementMap) {
 
       propBatch.push([
         geoId, address, city, zip, 'A1',
-        landHstd + landNon, imprvHstd + imprvNon, totalVal, null,
+        landHstd + landNon, imprvHstd + imprvNon, totalVal,
+        priorValues.get(geoId) ?? null,
         hood || null, TAX_YEAR,
       ]);
       bldgBatch.push([geoId, Math.round(bldg.sqft), bldg.yr_built]);
@@ -343,6 +344,21 @@ async function main() {
 
   if (!skipDownload && checkAlreadyImported()) process.exit(0);
 
+  // Snapshot prior year values from live DB before overwriting — used to
+  // populate prior_total_value so YoY change is available after each import.
+  const priorValues = new Map();
+  if (existsSync(LIVE_DB_PATH)) {
+    try {
+      const liveDb = new Database(LIVE_DB_PATH, { readonly: true });
+      liveDb.prepare('SELECT account_number, total_value FROM properties').all()
+        .forEach(r => priorValues.set(r.account_number, r.total_value));
+      liveDb.close();
+      console.log(`[Prior values] Snapshotted ${priorValues.size.toLocaleString()} values from live DB.\n`);
+    } catch (e) {
+      console.log(`[Prior values] Could not read live DB (${e.message}) — prior_total_value will be null.\n`);
+    }
+  }
+
   const db = openDb(DB_PATH);
   const start = Date.now();
 
@@ -363,7 +379,7 @@ async function main() {
   }
 
   const improvementMap = await buildImprovementMap(imprvPath);
-  await importProperties(db, propPath, improvementMap);
+  await importProperties(db, propPath, improvementMap, priorValues);
 
   const propCount = db.prepare('SELECT COUNT(*) AS n FROM properties').get().n;
   const bldCount  = db.prepare('SELECT COUNT(*) AS n FROM buildings').get().n;
