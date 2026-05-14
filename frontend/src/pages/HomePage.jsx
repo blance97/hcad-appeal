@@ -130,7 +130,7 @@ export default function HomePage() {
             {results.map(p => (
               <li key={p.account_number}>
                 <button
-                  onClick={() => navigate(`/${countyId}/results/${p.account_number}`)}
+                  onClick={() => { api.logEvent('search', query.trim()); navigate(`/${countyId}/results/${p.account_number}`); }}
                   className="w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors"
                 >
                   <div className="font-semibold text-zinc-900 text-sm">{p.address}, {p.city} {p.zip}</div>

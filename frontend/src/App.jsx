@@ -4,6 +4,7 @@ import HomePage from './pages/HomePage.jsx';
 import ResultsPage from './pages/ResultsPage.jsx';
 import PacketPage from './pages/PacketPage.jsx';
 import StatsPage from './pages/StatsPage.jsx';
+import GlobalStatsPage from './pages/GlobalStatsPage.jsx';
 import CountySelectPage from './pages/CountySelectPage.jsx';
 import { CountyProvider, useCounty } from './CountyContext.jsx';
 
@@ -58,6 +59,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<CountySelectPage />} />
+      <Route path="/stats" element={<GlobalStatsPage />} />
       <Route path="/:county" element={<CountyLayout />}>
         <Route index element={<HomePage />} />
         <Route path="results/:accountNumber" element={<ResultsPage />} />

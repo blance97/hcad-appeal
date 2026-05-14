@@ -15,5 +15,10 @@ export function useApi() {
     appealHtmlUrl: id => `${base}/appeal/${id}/html`,
     appealPdfUrl: id => `${base}/appeal/${id}/pdf`,
     neighborhood: code => fetch(`${base}/neighborhood/${code}`).then(r => r.json()),
+    logEvent: (event, value) => fetch(`${base}/property/log`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event, value }),
+    }).catch(() => {}),
   };
 }

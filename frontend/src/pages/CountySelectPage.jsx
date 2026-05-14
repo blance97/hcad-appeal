@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const COUNTY_META = {
   hcad: { description: 'Houston & surrounding areas' },
@@ -38,6 +38,7 @@ export default function CountySelectPage() {
           </div>
           <span className="font-bold text-zinc-900 tracking-tight">TX Appeal</span>
         </div>
+        <Link to="/stats" className="text-xs text-zinc-400 hover:text-zinc-700 transition-colors">Stats</Link>
       </header>
 
       <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-12">

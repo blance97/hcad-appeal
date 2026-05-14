@@ -8,6 +8,7 @@ import compsRouter from './routes/comps.js';
 import appealRouter from './routes/appeal.js';
 import neighborhoodRouter from './routes/neighborhood.js';
 import statsRouter from './routes/stats.js';
+import globalStatsRouter from './routes/globalStats.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -22,6 +23,8 @@ app.param('county', (req, res, next, county) => {
   req.db = getDb(county);
   next();
 });
+
+app.use('/api/stats', globalStatsRouter);
 
 app.use('/api/:county/property', propertiesRouter);
 app.use('/api/:county/comps', compsRouter);
